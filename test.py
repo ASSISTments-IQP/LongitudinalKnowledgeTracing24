@@ -10,7 +10,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 
-df = pd.read_csv('subset_23-24-problem_logs.csv')
+df = pd.read_csv('samples/19-20/sample8.csv')
 df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
 df = df[['user_xid', 'old_problem_id', 'skill_id', 'discrete_score', 'start_time']]
 df = df.sort_values(by=['user_xid', 'start_time'])
@@ -47,7 +47,7 @@ def process_data_for_model(grouped_data, num_steps):
     
     return users_data
 
-num_steps = 50
+num_steps = 200
 num_skills = max_encoded_value + 1
 hidden_units = 200
 dropout_rate = 0.2
@@ -56,7 +56,7 @@ train_data = process_data_for_model(grouped_data, num_steps)
 
 
 class Model(tf.keras.Model):
-    def __init__(self, num_skills=50, num_steps=50, hidden_units=200, dropout_rate=0.2, num_heads=2):
+    def __init__(self, num_skills=50, num_steps=200, hidden_units=200, dropout_rate=0.2, num_heads=2):
         super(Model, self).__init__()
         self.batch_size = 128
         self.num_skills = num_skills
@@ -73,6 +73,9 @@ class Model(tf.keras.Model):
         self.sigmoid_w = tf.keras.layers.Dense(num_skills, use_bias=True)
         self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001, beta_2=0.98)
+
+
+
     def call(self, inputs, training=False):
         x, problems, target_id, target_correctness = inputs
         x = tf.cast(x, tf.int32)
