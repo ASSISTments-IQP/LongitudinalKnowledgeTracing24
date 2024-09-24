@@ -3,6 +3,7 @@ from sklearn.preprocessing import LabelEncoder
 from typing import Tuple, List
 from tqdm import tqdm
 
+
 def load_and_process_data(file_path: str) -> Tuple[pd.DataFrame, LabelEncoder, LabelEncoder]:
     """
     Load the dataset from a CSV file, process the data by encoding problem IDs and skill IDs.
@@ -24,7 +25,7 @@ def load_and_process_data(file_path: str) -> Tuple[pd.DataFrame, LabelEncoder, L
     skill_encoder: LabelEncoder = LabelEncoder()
     df['encoded_problem_id'] = problem_encoder.fit_transform(df['old_problem_id'])
     df['encoded_skill_id'] = skill_encoder.fit_transform(df['skill_id'])
-
+    
     return df, problem_encoder, skill_encoder
 
 
@@ -44,11 +45,12 @@ def process_data_for_model(grouped_data: pd.DataFrame, num_steps: int) -> List[T
             - Padded sequence of scores.
     """
     users_data: List[Tuple[List[int], List[int], List[int]]] = []
-    for _, row in grouped_data.iterrows():
+    for _, row in tqdm(grouped_data.iterrows(), total=len(grouped_data), desc="Processing users' data"):
         sequence: List[Tuple[int, int, int]] = row['problem_skill_score']
         problem_ids: List[int] = [p[0] for p in sequence]
         skill_ids: List[int] = [p[1] for p in sequence]
         scores: List[int] = [p[2] for p in sequence]
+
         if len(problem_ids) > num_steps:
             problem_ids = problem_ids[:num_steps]
             skill_ids = skill_ids[:num_steps]
