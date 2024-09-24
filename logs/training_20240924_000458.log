@@ -1,0 +1,15 @@
+2024-09-24 00:04:58,719 - INFO - Starting main execution
+2024-09-24 00:04:58,719 - INFO - Loading data from 23-24-problem_logs.csv
+2024-09-24 00:05:07,701 - INFO - Data loaded. Shape: (12075734, 9)
+2024-09-24 00:05:07,702 - INFO - Processing data
+2024-09-24 00:07:02,056 - INFO - Data processing completed. Time taken: 123.34 seconds
+2024-09-24 00:07:02,057 - INFO - Creating skill and problem maps
+2024-09-24 00:07:02,199 - INFO - Maps created. Unique skills: 525, Unique problems: 90065
+2024-09-24 00:07:02,201 - INFO - Time taken: 0.14 seconds
+2024-09-24 00:07:02,201 - INFO - Creating data generators
+2024-09-24 00:07:02,202 - INFO - Creating model
+2024-09-24 00:07:02,241 - INFO - Starting model training
+2024-09-24 00:07:02,261 - INFO - Starting model training
+2024-09-24 00:07:02,261 - INFO - Model configuration: batch_size=32
+2024-09-24 00:07:02,263 - INFO - Optimizer: Adam, Learning rate: 0.0010000000474974513
+2024-09-24 00:07:02,263 - INFO - Starting epoch 1/10
