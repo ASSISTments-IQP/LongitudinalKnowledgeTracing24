@@ -3,4 +3,5 @@
 .venv/
 *.csv
 /Data
-/samples
+/Data/samples
+/__pycache__
