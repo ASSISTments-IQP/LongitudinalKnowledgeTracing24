@@ -18,19 +18,30 @@ class PFA:
         wins = []
         fails = []
         data.sort_values(by=['user_xid','skill_id','start_time'], inplace=True)
-        gby = data.groupby(by=['user_xid', 'skill_id'])
 
         # Loop (w/ tqdm if verbose) to create wins & fails features
-        for name, group in (tqdm(gby), gby)[self.verbose > 0]:
-            w = 0
-            f = 0
-            for idx, row in group.iterrows():
-                wins.append(w)
-                fails.append(f)
-                if row['discrete_score'] == 1:
-                    w += 1
-                else:
-                    f += 1
+        if self.verbose > 0:
+            for name, group in tqdm(data.groupby(by=['user_xid', 'skill_id'])):
+                w = 0
+                f = 0
+                for idx, row in group.iterrows():
+                    wins.append(w)
+                    fails.append(f)
+                    if row['discrete_score'] == 1:
+                        w += 1
+                    else:
+                        f += 1
+        else:
+            for name, group in data.groupby(by=['user_xid', 'skill_id']):
+                w = 0
+                f = 0
+                for idx, row in group.iterrows():
+                    wins.append(w)
+                    fails.append(f)
+                    if row['discrete_score'] == 1:
+                        w += 1
+                    else:
+                        f += 1
 
         data['wins'] = wins
         data['fails'] = fails
@@ -39,19 +50,30 @@ class PFA:
         # Start creating the sparse array for the data
         res_arr = sp.dok_array((data.shape[0], 3*(self.n_s+1)))
         i = 0
-        it = data.iterrows()
 
+        if self.verbose > 0:
+            for idx, row in tqdm(data.iterrows()):
+                if row['skill_id'] in self.skills:
+                    skill_idx = np.where(self.skills == row['skill_id'])[0][0]
+                else:
+                    skill_idx = self.n_s + 1
 
-        for idx, row in (tqdm(it), it)[self.verbose > 0]:
-            if row['skill_id'] in self.skills:
-                skill_idx = np.where(self.skills == row['skill_id'])[0][0]
-            else:
-                skill_idx = self.n_s + 1
+                res_arr[i,skill_idx] = 1
+                res_arr[i,self.n_s+1+skill_idx] = row['wins']
+                res_arr[i,2*(self.n_s+1)+skill_idx] = row['fails']
+                i += 1
+        else:
+            for idx, row in data.iterrows():
+                if row['skill_id'] in self.skills:
+                    skill_idx = np.where(self.skills == row['skill_id'])[0][0]
+                else:
+                    skill_idx = self.n_s + 1
 
-            res_arr[i,skill_idx] = 1
-            res_arr[i,self.n_s+1+skill_idx] = row['wins']
-            res_arr[i,2*(self.n_s+1)+skill_idx] = row['fails']
-            i += 1
+                res_arr[i, skill_idx] = 1
+                res_arr[i, self.n_s + 1 + skill_idx] = row['wins']
+                res_arr[i, 2 * (self.n_s + 1) + skill_idx] = row['fails']
+                i += 1
+
 
         X = res_arr.tocoo()
         y = data.discrete_score.to_numpy(copy=True)
