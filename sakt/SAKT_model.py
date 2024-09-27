@@ -63,14 +63,13 @@ class SAKTModel(tf.keras.Model):
     def call(self, inputs, training=False):
         exercises, responses = inputs
 
-        # Get embeddings
         exercise_embeddings = self.exercise_embedding(exercises)
         response_embeddings = self.response_embedding(responses)
 
-        # Combine exercise and response embeddings via element-wise addition
+
         interaction_embeddings = exercise_embeddings + response_embeddings
 
-        # Self-attention mechanism
+
         attention_output = self.multi_head_attention(
             query=exercise_embeddings,
             key=interaction_embeddings,
@@ -78,21 +77,20 @@ class SAKTModel(tf.keras.Model):
             attention_mask=self.create_look_ahead_mask(tf.shape(exercises)[1])
         )
 
-        # Add & Norm
+
         attention_output = self.dropout1(attention_output, training=training)
         out1 = self.layer_norm1(attention_output + exercise_embeddings)
 
-        # Feed-forward network
         ffn_output = self.ffn(out1)
         ffn_output = self.dropout2(ffn_output, training=training)
         out2 = self.layer_norm2(ffn_output + out1)
 
-        # Output layer
+
         output = self.output_layer(out2)
         return output
 
     def create_look_ahead_mask(self, size):
-        # Mask future positions
+
         mask = 1 - tf.linalg.band_part(tf.ones((size, size)), -1, 0)
         return mask
 
@@ -127,7 +125,7 @@ class SAKTModel(tf.keras.Model):
                     'acc': f'{train_accuracy.result():.4f}'
                 })
 
-    def evaluate(self) -> None:
+    def eval(self) -> None:
         val_data = self._data_generator()
         val_loss = tf.keras.metrics.Mean(name='val_loss')
         val_auc = tf.keras.metrics.AUC(name='val_auc')
