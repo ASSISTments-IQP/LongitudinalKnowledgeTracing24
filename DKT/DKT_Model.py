@@ -1,3 +1,4 @@
+import numpy as np
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Embedding
 from sklearn.preprocessing import LabelEncoder
@@ -13,7 +14,7 @@ class DKT:
       self.model = Sequential()
 
    def preprocess(self, data):
-      self.vocab_size = data['old_problem_id'].nunique() # Number of unique problem IDs
+      self.vocab_size = data['old_problem_id'].nunique() + 1 # Number of unique problem IDs
 
       data = data[['user_xid', 'old_problem_id', 'skill_id', 'discrete_score', 'start_time']]
       data = data.sort_values(by=['user_xid', 'start_time'])
@@ -64,33 +65,27 @@ class DKT:
          epochs=10, 
          batch_size=32)
       
-      print("Model Training finished, final statistics:")
-      y_pred = self.model.predict_proba(X)[:,1]
-      ll = log_loss(y,y_pred)
-      auc = roc_auc_score(y,y_pred)
-      
-      print(f"Training loss: {ll}")
-      print(f"Training AUC: {auc}")
 
-      return ll, auc
+      print("Model Training finished, final statistics:")
+ 
+      
+      print(f"Training loss: {self.model.history.history['loss'][-1]}")
+      print(f"Training AUC: {self.model.history.history['AUC'][-1]}")
+
    
 
-   def evluate(self, data):
+   def evaluate(self, data):
       if self.vocab_size == 0:
          print("Model has not been trained yet.")
          return
       
       X, y = self.preprocess(data)
+      loss, accuracy, auc = self.model.evaluate(X, y)
 
-      y_pred = self.model.predict_proba(X)[:, 1]
-
-      ll = log_loss(y, y_pred)
-      auc = roc_auc_score(y, y_pred)
-
-      print(f"Log loss: {ll}")
-      print(f"AUC: {auc}")
-
-      return ll, auc
+      print("Evaulation Results")
+      print(f"Test Loss: {loss}")
+      print(f"Test Accuracy: {accuracy}")
+      print(f"Test AUC: {auc}")
 
 
 

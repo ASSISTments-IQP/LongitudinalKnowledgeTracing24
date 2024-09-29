@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from DKT_Model import DKT
 import logging
+import torch
 
 def main():
    logging.info("Starting main execution")
@@ -17,7 +18,9 @@ def main():
    model.fit(train)
    
    logging.info("Model training finished, beginning evaluation")
-   model.eval(test)
+   model.evaluate(test)
+
+   torch.save(model, 'DKT_model.pth')
 
 if __name__ == "__main__":
     main()
