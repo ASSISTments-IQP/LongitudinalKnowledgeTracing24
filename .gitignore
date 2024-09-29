@@ -4,5 +4,5 @@
 *.csv
 /Data
 /Data/samples
-/__pycache__
+*/__pycache__
 /DKT/DKT_model.pth
