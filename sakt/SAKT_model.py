@@ -1,15 +1,14 @@
+import tensorflow as tf
 from typing import Tuple, Generator
 import pandas as pd
 import numpy as np
-import tensorflow as tf
 import tqdm
 
 
 class SAKTModel(tf.keras.Model):
-    def __init__(self, file_path: str, num_steps: int = 100, batch_size: int = 32, d_model: int = 256,
+    def __init__(self, num_steps: int = 100, batch_size: int = 32, d_model: int = 256,
                  num_heads: int = 8, dropout_rate: float = 0.2):
         super(SAKTModel, self).__init__()
-        self.file_path = file_path
         self.num_steps = num_steps
         self.batch_size = batch_size
         self.d_model = d_model
@@ -17,12 +16,9 @@ class SAKTModel(tf.keras.Model):
         self.dropout_rate = dropout_rate
         self.exercise_map = {}
         self.num_exercises = 0
-
-        # Initialize embeddings
         self.exercise_embedding = None
-        self.response_embedding = None  # Added response embedding
-
-        # Transformer components
+        self.response_embedding = None
+        self.position_embedding = None
         self.multi_head_attention = None
         self.dropout1 = None
         self.layer_norm1 = None
@@ -31,23 +27,20 @@ class SAKTModel(tf.keras.Model):
         self.layer_norm2 = None
         self.output_layer = None
 
-    def preprocess(self) -> None:
-        df = pd.read_csv(self.file_path)
+    def preprocess(self, df: pd.DataFrame) -> None:
         df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
         df = df[['user_xid', 'old_problem_id', 'discrete_score', 'start_time']]
         df = df.sort_values(by=['user_xid', 'start_time'])
-
-        # Map exercises to unique IDs
-        self.exercise_map = {problem: idx for idx, problem in enumerate(df['old_problem_id'].unique(), start=1)}
+        unique_problems = df['old_problem_id'].unique()
+        self.exercise_map = {problem: idx for idx, problem in enumerate(unique_problems, start=1)}
         self.num_exercises = len(self.exercise_map)
-
-        # Define embeddings
         self.exercise_embedding = tf.keras.layers.Embedding(input_dim=self.num_exercises + 1, output_dim=self.d_model)
-        self.response_embedding = tf.keras.layers.Embedding(input_dim=2, output_dim=self.d_model)  # Correct/Incorrect
+        self.response_embedding = tf.keras.layers.Embedding(input_dim=2, output_dim=self.d_model)
+        self.position_embedding = tf.keras.layers.Embedding(input_dim=self.num_steps, output_dim=self.d_model)
 
-        # Transformer layers
-        self.multi_head_attention = tf.keras.layers.MultiHeadAttention(num_heads=self.num_heads, key_dim=self.d_model,
-                                                                       dropout=self.dropout_rate)
+        self.multi_head_attention = tf.keras.layers.MultiHeadAttention(
+            num_heads=self.num_heads, key_dim=self.d_model, dropout=self.dropout_rate
+        )
         self.dropout1 = tf.keras.layers.Dropout(self.dropout_rate)
         self.layer_norm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
@@ -61,42 +54,38 @@ class SAKTModel(tf.keras.Model):
         self.output_layer = tf.keras.layers.Dense(1, activation='sigmoid')
 
     def call(self, inputs, training=False):
-        exercises, responses = inputs
-
-        exercise_embeddings = self.exercise_embedding(exercises)
-        response_embeddings = self.response_embedding(responses)
-
-
-        interaction_embeddings = exercise_embeddings + response_embeddings
-
-
+        past_exercises, past_responses, current_exercises = inputs
+        attention_mask = tf.not_equal(past_exercises, 0)
+        attention_mask = tf.cast(attention_mask, dtype=tf.int32)
+        attention_mask = tf.expand_dims(attention_mask, axis=1)
+        past_exercise_embeddings = self.exercise_embedding(past_exercises)
+        past_response_embeddings = self.response_embedding(past_responses)
+        past_interactions_embeddings = past_exercise_embeddings + past_response_embeddings
+        seq_len = tf.shape(past_exercises)[1]
+        positions = tf.range(seq_len, dtype=tf.int32)
+        position_embeddings = self.position_embedding(positions)
+        position_embeddings = tf.expand_dims(position_embeddings, 0)
+        past_interactions_embeddings += position_embeddings
+        current_exercise_embedding = self.exercise_embedding(current_exercises)
+        current_exercise_embedding = tf.expand_dims(current_exercise_embedding, axis=1)
         attention_output = self.multi_head_attention(
-            query=exercise_embeddings,
-            key=interaction_embeddings,
-            value=interaction_embeddings,
-            attention_mask=self.create_look_ahead_mask(tf.shape(exercises)[1])
+            query=current_exercise_embedding,
+            key=past_interactions_embeddings,
+            value=past_interactions_embeddings,
+            attention_mask=attention_mask
         )
-
-
         attention_output = self.dropout1(attention_output, training=training)
-        out1 = self.layer_norm1(attention_output + exercise_embeddings)
-
+        out1 = self.layer_norm1(attention_output + current_exercise_embedding)
         ffn_output = self.ffn(out1)
         ffn_output = self.dropout2(ffn_output, training=training)
         out2 = self.layer_norm2(ffn_output + out1)
-
-
         output = self.output_layer(out2)
+        output = tf.squeeze(output, axis=[1, 2])
         return output
 
-    def create_look_ahead_mask(self, size):
-
-        mask = 1 - tf.linalg.band_part(tf.ones((size, size)), -1, 0)
-        return mask
-
-    def fit(self, num_epochs: int = 10):
-        # Create data generator
-        train_data = self._data_generator()
+    def fit(self, train_df: pd.DataFrame, num_epochs: int = 10):
+        self.preprocess(train_df)
+        train_data = self._data_generator(train_df)
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss_fn = tf.keras.losses.BinaryCrossentropy()
 
@@ -111,9 +100,10 @@ class SAKTModel(tf.keras.Model):
 
             train_pbar = tqdm.tqdm(train_data, desc=f"Epoch {epoch + 1}/{num_epochs} [Train]", ncols=100)
             for batch in train_pbar:
-                x_exercises_batch, x_responses_batch, y_batch = batch
-                loss, predictions = self._train_step(x_exercises_batch, x_responses_batch, y_batch, optimizer,
-                                                     loss_fn)
+                past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch = batch
+                loss, predictions = self._train_step(
+                    past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch, optimizer, loss_fn
+                )
 
                 train_loss.update_state(loss)
                 train_auc.update_state(y_batch.flatten(), predictions.flatten())
@@ -125,17 +115,21 @@ class SAKTModel(tf.keras.Model):
                     'acc': f'{train_accuracy.result():.4f}'
                 })
 
-    def eval(self) -> None:
-        val_data = self._data_generator()
+            print(f"Epoch {epoch + 1}/{num_epochs}: Loss={train_loss.result():.4f}, AUC={train_auc.result():.4f}, Accuracy={train_accuracy.result():.4f}")
+
+    def eval(self, val_df: pd.DataFrame):
+        val_data = self._data_generator(val_df)
         val_loss = tf.keras.metrics.Mean(name='val_loss')
         val_auc = tf.keras.metrics.AUC(name='val_auc')
         val_accuracy = tf.keras.metrics.BinaryAccuracy(name='val_accuracy')
 
         val_pbar = tqdm.tqdm(val_data, desc=f"Evaluation [Val]", ncols=100)
         for batch in val_pbar:
-            x_exercises_batch, x_responses_batch, y_batch = batch
-            loss, predictions = self._val_step(x_exercises_batch, x_responses_batch, y_batch,
-                                               tf.keras.losses.BinaryCrossentropy())
+            past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch = batch
+            loss, predictions = self._val_step(
+                past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch,
+                tf.keras.losses.BinaryCrossentropy()
+            )
 
             val_loss.update_state(loss)
             val_auc.update_state(y_batch.flatten(), predictions.flatten())
@@ -147,59 +141,79 @@ class SAKTModel(tf.keras.Model):
                 'acc': f'{val_accuracy.result():.4f}'
             })
 
-    def _data_generator(self) -> Generator[Tuple[np.ndarray, np.ndarray, np.ndarray], None, None]:
-        df = pd.read_csv(self.file_path)
+        metrics = {
+            'loss': val_loss.result().numpy(),
+            'auc': val_auc.result().numpy(),
+            'accuracy': val_accuracy.result().numpy()
+        }
+
+        print(f"Validation: Loss={metrics['loss']:.4f}, AUC={metrics['auc']:.4f}, Accuracy={metrics['accuracy']:.4f}")
+        return metrics
+
+    def _data_generator(self, df: pd.DataFrame) -> Generator[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], None, None]:
+        df = df.copy()
+        df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
+        df = df[['user_xid', 'old_problem_id', 'discrete_score', 'start_time']]
+        df = df.sort_values(by=['user_xid', 'start_time'])
         user_ids = df['user_xid'].unique()
-        num_users = len(user_ids)
 
-        while True:
-            np.random.shuffle(user_ids)
-            for start_idx in range(0, num_users, self.batch_size):
-                end_idx = min(start_idx + self.batch_size, num_users)
-                batch_user_ids = user_ids[start_idx:end_idx]
+        batch_past_exercises, batch_past_responses, batch_current_exercises, batch_targets = [], [], [], []
 
-                batch_exercises, batch_responses, batch_targets = [], [], []
+        for user_id in user_ids:
+            user_data = df[df['user_xid'] == user_id].sort_values('start_time')
+            exercise_seq = [self.exercise_map.get(problem, 0) for problem in user_data['old_problem_id']]
+            response_seq = user_data['discrete_score'].astype(int).tolist()
 
-                for user_id in batch_user_ids:
-                    user_data = df[df['user_xid'] == user_id].sort_values('start_time')
-                    exercise_seq = [self.exercise_map[problem] for problem in user_data['old_problem_id']]
-                    response_seq = user_data['discrete_score'].astype(int).tolist()
+            if len(exercise_seq) < 2:
+                continue  # Skip users with less than 2 interactions
 
-                    if len(exercise_seq) > self.num_steps:
-                        start_index = np.random.randint(0, len(exercise_seq) - self.num_steps)
-                        exercise_seq = exercise_seq[start_index:start_index + self.num_steps]
-                        response_seq = response_seq[start_index:start_index + self.num_steps]
-                    else:
-                        padding = self.num_steps - len(exercise_seq)
-                        exercise_seq = [0] * padding + exercise_seq
-                        response_seq = [0] * padding + response_seq
+            for idx in range(1, len(exercise_seq)):
+                start_idx = max(0, idx - self.num_steps)
+                end_idx = idx
+                past_exercises = exercise_seq[start_idx:end_idx]
+                past_responses = response_seq[start_idx:end_idx]
+                current_exercise = exercise_seq[idx]
+                target_response = response_seq[idx]
 
-                    # Prepare input and target sequences
-                    batch_exercises.append(exercise_seq)
-                    batch_responses.append(response_seq[:-1])  # Inputs: All but last response
-                    batch_targets.append(response_seq[1:])     # Targets: All but first response
+                # Pad sequences if necessary
+                if len(past_exercises) < self.num_steps:
+                    pad_len = self.num_steps - len(past_exercises)
+                    past_exercises = [0] * pad_len + past_exercises
+                    past_responses = [0] * pad_len + past_responses
 
-                yield (np.array(batch_exercises, dtype=np.int32),
-                       np.array(batch_responses, dtype=np.int32),
-                       np.array(batch_targets, dtype=np.float32))
+                batch_past_exercises.append(past_exercises)
+                batch_past_responses.append(past_responses)
+                batch_current_exercises.append(current_exercise)
+                batch_targets.append(target_response)
+
+                if len(batch_past_exercises) == self.batch_size:
+                    yield (
+                        np.array(batch_past_exercises, dtype=np.int32),
+                        np.array(batch_past_responses, dtype=np.int32),
+                        np.array(batch_current_exercises, dtype=np.int32),
+                        np.array(batch_targets, dtype=np.float32)
+                    )
+                    batch_past_exercises, batch_past_responses, batch_current_exercises, batch_targets = [], [], [], []
+
+        if batch_past_exercises:
+            yield (
+                np.array(batch_past_exercises, dtype=np.int32),
+                np.array(batch_past_responses, dtype=np.int32),
+                np.array(batch_current_exercises, dtype=np.int32),
+                np.array(batch_targets, dtype=np.float32)
+            )
 
     @tf.function
-    def _train_step(self, x_exercises, x_responses, y, optimizer, loss_fn) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _train_step(self, past_exercises, past_responses, current_exercises, y, optimizer, loss_fn) -> Tuple[tf.Tensor, tf.Tensor]:
         with tf.GradientTape() as tape:
-            predictions = self([x_exercises, x_responses], training=True)
-            # Flatten predictions and labels
-            predictions = tf.reshape(predictions, [-1])
-            y = tf.reshape(y, [-1])
+            predictions = self([past_exercises, past_responses, current_exercises], training=True)
             loss = loss_fn(y, predictions)
         gradients = tape.gradient(loss, self.trainable_variables)
         optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         return loss, predictions
 
     @tf.function
-    def _val_step(self, x_exercises, x_responses, y, loss_fn) -> Tuple[tf.Tensor, tf.Tensor]:
-        predictions = self([x_exercises, x_responses], training=False)
-        # Flatten predictions and labels
-        predictions = tf.reshape(predictions, [-1])
-        y = tf.reshape(y, [-1])
+    def _val_step(self, past_exercises, past_responses, current_exercises, y, loss_fn) -> Tuple[tf.Tensor, tf.Tensor]:
+        predictions = self([past_exercises, past_responses, current_exercises], training=False)
         loss = loss_fn(y, predictions)
         return loss, predictions
