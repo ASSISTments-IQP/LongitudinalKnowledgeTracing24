@@ -1,7 +1,5 @@
-import numpy as np
+from BKT_Model import BKTModel
+import pandas as pd
 
-z = np.array([[1, 2, 3, 4],
-              [5, 6, 7, 8],
-              [9, 10, 11, 12]])
-z = z.reshape(-1,1)
-print(z)
+bkt = BKTModel()
+bkt.fit(pd.read_csv("samples.csv"))
