@@ -59,7 +59,7 @@ class PFA:
                 if row['skill_id'] in self.skills:
                     skill_idx = np.where(self.skills == row['skill_id'])[0][0]
                 else:
-                    skill_idx = self.n_s + 1
+                    skill_idx = self.n_s
 
                 skill_arr[i,skill_idx] = 1
                 win_arr[i,skill_idx] = row['wins']
@@ -70,7 +70,7 @@ class PFA:
                 if row['skill_id'] in self.skills:
                     skill_idx = np.where(self.skills == row['skill_id'])[0][0]
                 else:
-                    skill_idx = self.n_s + 1
+                    skill_idx = self.n_s
 
                 skill_arr[i, skill_idx] = 1
                 win_arr[i, skill_idx] = row['wins']
