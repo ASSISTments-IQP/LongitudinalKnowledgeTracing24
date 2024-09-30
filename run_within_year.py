@@ -4,7 +4,7 @@ from concurrent.futures import ProcessPoolExecutor as Pool
 from functools import partial
 from tqdm import tqdm
 import pandas as pd
-import sys
+import sys, json
 model_list = ['BKT','PFA','DKT','SAKT']
 
 
@@ -15,7 +15,7 @@ def run_cv(items, model_type):
     res_l = []
 
     print(f'Running CV for {year}')
-    with Pool() as p:
+    with Pool(max_workers=5) as p:
         for k in p.map(partial(run_one_fold,data=data, model_type=model_type, year=year), range(5)):
             res_l.append(k)
 
@@ -68,8 +68,10 @@ if __name__ == '__main__':
 
     res = []
 
-    with Pool() as p:
+    with Pool(max_workers=2) as p:
         for l in p.map(partial(run_cv, model_type = sys.argv[1]) , sample_dict.items()):
             res.append(l)
 
-    print(res)
+    with open(f'./within_year_results_{sys.argv[1]}.json','w') as fout:
+        json.dump(res,fout)
+        fout.close()

@@ -100,7 +100,7 @@ class PFA:
         print(f"Training loss: {ll}")
         print(f"Training AUC: {auc}")
 
-        return ll, auc
+        return auc
 
 
     def eval(self, data):
@@ -119,4 +119,4 @@ class PFA:
         print(f"Log loss: {ll}")
         print(f"AUC: {auc}")
 
-        return ll, auc
+        return auc
