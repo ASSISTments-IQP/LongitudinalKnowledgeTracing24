@@ -4,4 +4,4 @@
 *.csv
 /Data
 /Data/samples
-/__pycache__
+*/__pycache__
