@@ -22,8 +22,6 @@ def run_cv(items, model_type):
     return res_l
 
 
-
-
 def run_one_fold(val_fold, data, model_type, year):
     train_list = []
     for key, val in data.items():
