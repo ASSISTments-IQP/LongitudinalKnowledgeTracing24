@@ -38,11 +38,11 @@ class SAKTModel(tf.keras.Model):
 
         for user_id in user_ids:
             user_data = df[df['user_id'] == user_id].sort_values('order_id')
-            exercise_seq = [self.exercise_map.get(id, 0) for id in user_data['skill_id']]
+            exercise_seq = [self.exercise_map.get(id, 0) for id in user_data['old_problem_id']]
             response_seq = user_data['correct'].astype(int).tolist()
 
             if len(exercise_seq) < 2:
-                continue
+                continue  # Skip users with less than 2 interactions
 
             for idx in range(1, len(exercise_seq)):
                 start_idx = max(0, idx - self.num_steps)
@@ -52,6 +52,7 @@ class SAKTModel(tf.keras.Model):
                 current_exercise = exercise_seq[idx]
                 target_response = response_seq[idx]
 
+                # Pad sequences if necessary
                 if len(past_exercises) < self.num_steps:
                     pad_len = self.num_steps - len(past_exercises)
                     past_exercises = [0] * pad_len + past_exercises
@@ -93,8 +94,9 @@ class SAKTModel(tf.keras.Model):
             exercise_seq = [self.exercise_map.get(id, 0) for id in user_data['skill_id']]
 
             if len(exercise_seq) < 2:
-                continue
+                continue  # Skip users with less than 2 interactions
 
+            # Each user contributes (number of interactions - 1) samples
             total_samples += len(exercise_seq) - 1
 
         return total_samples
@@ -174,7 +176,8 @@ class SAKTModel(tf.keras.Model):
 
     def fit(self, train_df: pd.DataFrame, num_epochs: int = 10) -> None:
         self.preprocess(train_df)
-
+        
+        # Calculate total samples and iterations per epoch
         total_samples = self._count_total_samples(train_df)
         iterations_per_epoch = (total_samples + self.batch_size - 1) // self.batch_size
 
@@ -190,7 +193,7 @@ class SAKTModel(tf.keras.Model):
             train_auc.reset_state()
             train_accuracy.reset_state()
 
-            train_data = self._data_generator(train_df)
+            train_data = self._data_generator(train_df)  # Reset the generator for each epoch
 
             train_pbar = tqdm.tqdm(train_data, desc=f"Epoch {epoch + 1}/{num_epochs} [Train]", ncols=100, total=iterations_per_epoch)
             for batch in train_pbar:
@@ -198,6 +201,8 @@ class SAKTModel(tf.keras.Model):
                 loss, predictions = self._train_step(
                     past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch, optimizer, loss_fn
                 )
+
+                # Use tf.reshape to flatten tensors
                 y_batch_flat = tf.reshape(y_batch, [-1])
                 predictions_flat = tf.reshape(predictions, [-1])
 
@@ -221,6 +226,7 @@ class SAKTModel(tf.keras.Model):
         val_auc: tf.keras.metrics.AUC = tf.keras.metrics.AUC(name='val_auc')
         val_accuracy: tf.keras.metrics.BinaryAccuracy = tf.keras.metrics.BinaryAccuracy(name='val_accuracy')
 
+        # Reset the states
         val_loss.reset_state()
         val_auc.reset_state()
         val_accuracy.reset_state()
@@ -235,6 +241,7 @@ class SAKTModel(tf.keras.Model):
                 tf.keras.losses.BinaryCrossentropy()
             )
 
+            # Use tf.reshape to flatten tensors
             y_batch_flat = tf.reshape(y_batch, [-1])
             predictions_flat = tf.reshape(predictions, [-1])
 
