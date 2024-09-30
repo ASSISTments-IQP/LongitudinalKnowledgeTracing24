@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from hmmlearn.hmm import CategoricalHMM
 from sklearn.metrics import log_loss, roc_auc_score
 
@@ -16,27 +17,53 @@ class BKTModel:
 
     # Data sequencing (sorting)
     def preprocess(self, data):
-        data.sort_values(by=['user_xid','skill_id','start_time'], inplace=True)
-        gk = data.groupby(by=['user_xid', 'skill_id'])['discrete_score'].apply(list)
-        X = np.concatenate(gk.values).reshape(-1, 1)  # reshape into array
-        lens = [len(seq) for seq in gk]               # the length of each sequence in our grouped dataframe
-        return X, lens
+        data = data.sort_values(by=['user_xid', 'skill_id', 'start_time'])
+        grouped = data.groupby(by=['skill_id', 'user_xid'])
+
+        curr_skill = 1
+        skill_dict = {}
+        value_dict = {"seq": [], "lengths": []}
+
+        for value, group in tqdm(grouped):
+            if value[0] != curr_skill:
+                value_dict['seq'] = np.concatenate(value_dict['seq']).reshape(-1, 1)
+                skill_dict[curr_skill] = value_dict
+                value_dict = {"seq": [], "lengths": []}
+
+            curr_skill = value[0]
+            value_dict['seq'].append(group.discrete_score.to_numpy())
+            value_dict['lengths'].append(group.shape[0])
+
+        value_dict['seq'] = np.concatenate(value_dict['seq']).reshape(-1, 1).astype(int)
+        skill_dict[curr_skill] = value_dict
+
+        return skill_dict
 
     def fit(self, data):
 
         print("Beginning data preprocessing.")
-        X, lens = self.preprocess(data)
+        skill_dict = self.preprocess(data)
         print("Finished data processing. Beginning fitting process.")
 
-        self.model.fit(X, lens)
+        for skill in skill_dict:
+            X = skill_dict[skill]['seq']
+            lengths = skill_dict[skill]['lengths']
 
-        print("Finished model training. Printing final statistics...")
-        y_score = self.model.predict_proba(X)[:, 1]
+            self.model.fit(X, lengths)
 
-        loss = log_loss(X, y_score)     # logistical loss
-        auc = roc_auc_score(X, y_score)
+            print("Finished model training. Printing final statistics...")
+            trained_start_prob = self.model.startprob_
+            trained_trans_prob = self.model.transmat_
+            trained_emission_prob = self.model.emissionprob_
 
-        print(f"Loss: {loss}")
-        print(f"AUC:  {auc}")
+            print('Trained Start_Probabilities: ', trained_start_prob)
+            print('Trained Transition Probabilities: ', trained_trans_prob)
+            print('Trained Emission Probabilities: ', trained_emission_prob)
 
-        return loss, auc
+            y_score = self.model.predict_proba(X)[:, 1]
+
+            loss = log_loss(X, y_score)  # logistical loss
+            auc = roc_auc_score(X, y_score)
+
+            print(f"Loss: {loss}")
+            print(f"AUC:  {auc}")
