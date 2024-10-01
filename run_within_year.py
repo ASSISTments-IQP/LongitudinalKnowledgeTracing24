@@ -20,7 +20,7 @@ def run_cv(items, model_type):
         for k in p.map(partial(run_one_fold,data=data, model_type=model_type, year=year), range(5)):
             res_l.append(k)
 
-    return res_l
+    return res_l, year
 
 
 def run_one_fold(val_fold, data, model_type, year):
@@ -69,11 +69,11 @@ if __name__ == '__main__':
 
     print('Samples loaded & processed into folds')
 
-    res = []
+    res = {}
 
     with Pool(max_workers=2) as p:
         for l in p.map(partial(run_cv, model_type = sys.argv[1]) , sample_dict.items()):
-            res.append(l)
+            res[l[1]] = l[0]
 
     with open(f'./within_year_results_{sys.argv[1]}.json','w') as fout:
         json.dump(res,fout)
