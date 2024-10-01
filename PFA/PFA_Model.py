@@ -1,4 +1,3 @@
-import scipy.sparse
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss, roc_auc_score
 import scipy.sparse as sp
@@ -21,28 +20,20 @@ class PFA:
         data.sort_values(by=['user_xid','skill_id','start_time'], inplace=True)
 
         # Loop (w/ tqdm if verbose) to create wins & fails features
+        disable = True
         if self.verbose > 0:
-            for name, group in tqdm(data.groupby(by=['user_xid', 'skill_id'])):
-                w = 0
-                f = 0
-                for idx, row in group.iterrows():
-                    wins.append(w)
-                    fails.append(f)
-                    if row['discrete_score'] == 1:
-                        w += 1
-                    else:
-                        f += 1
-        else:
-            for name, group in data.groupby(by=['user_xid', 'skill_id']):
-                w = 0
-                f = 0
-                for idx, row in group.iterrows():
-                    wins.append(w)
-                    fails.append(f)
-                    if row['discrete_score'] == 1:
-                        w += 1
-                    else:
-                        f += 1
+            disable = False
+
+        for name, group in tqdm(data.groupby(by=['user_xid', 'skill_id']), disable=disable):
+            w = 0
+            f = 0
+            for idx, row in group.iterrows():
+                wins.append(w)
+                fails.append(f)
+                if row['discrete_score'] == 1:
+                    w += 1
+                else:
+                    f += 1
 
         data['wins'] = wins
         data['fails'] = fails
@@ -54,28 +45,19 @@ class PFA:
         fail_arr = sp.dok_array((data.shape[0], self.n_s+1))
         i = 0
 
+        disable = True
         if self.verbose > 0:
-            for idx, row in tqdm(data.iterrows()):
-                if row['skill_id'] in self.skills:
-                    skill_idx = np.where(self.skills == row['skill_id'])[0][0]
-                else:
-                    skill_idx = self.n_s
+            disable = False
+        for idx, row in tqdm(data.iterrows(), disable=disable):
+            if row['skill_id'] in self.skills:
+                skill_idx = np.where(self.skills == row['skill_id'])[0][0]
+            else:
+                skill_idx = self.n_s
 
-                skill_arr[i,skill_idx] = 1
-                win_arr[i,skill_idx] = row['wins']
-                fail_arr[i,skill_idx] = row['fails']
-                i += 1
-        else:
-            for idx, row in data.iterrows():
-                if row['skill_id'] in self.skills:
-                    skill_idx = np.where(self.skills == row['skill_id'])[0][0]
-                else:
-                    skill_idx = self.n_s
-
-                skill_arr[i, skill_idx] = 1
-                win_arr[i, skill_idx] = row['wins']
-                fail_arr[i, skill_idx] = row['fails']
-                i += 1
+            skill_arr[i,skill_idx] = 1
+            win_arr[i,skill_idx] = row['wins']
+            fail_arr[i,skill_idx] = row['fails']
+            i += 1
 
         res_arr = sp.hstack([skill_arr,win_arr,fail_arr])
 
@@ -89,20 +71,27 @@ class PFA:
         self.skills = np.sort(data.skill_id.unique())
         self.n_s = len(self.skills)
 
-        print("Beginning data preprocessing")
+        if self.verbose > 0:
+            print("Beginning data preprocessing")
+
         X, y = self.preprocess(data)
-        print("Data preprocessing finished, beginning fitting.")
+
+        if self.verbose > 0:
+            print("Data preprocessing finished, beginning fitting.")
 
         self.model.fit(X,y)
 
-        print("Model Training finished, final statistics:")
+        if self.verbose > 0:
+            print("Model Training finished, final statistics:")
+
         y_pred = self.model.predict_proba(X)[:,1]
 
         ll = log_loss(y,y_pred)
         auc = roc_auc_score(y,y_pred)
 
-        print(f"Training loss: {ll}")
-        print(f"Training AUC: {auc}")
+        if self.verbose > 0:
+            print(f"Training loss: {ll}")
+            print(f"Training AUC: {auc}")
 
         return auc
 
@@ -112,7 +101,9 @@ class PFA:
             print("No model has been trained, aborting")
             return
 
-        print("Beginning data preprocessing")
+        if self.verbose > 0:
+            print("Beginning data preprocessing")
+
         X, y = self.preprocess(data)
 
         y_pred = self.model.predict_proba(X)[:, 1]
@@ -120,7 +111,8 @@ class PFA:
         ll = log_loss(y, y_pred)
         auc = roc_auc_score(y, y_pred)
 
-        print(f"Log loss: {ll}")
-        print(f"AUC: {auc}")
+        if self.verbose > 0:
+            print(f"Log loss: {ll}")
+            print(f"AUC: {auc}")
 
         return auc
