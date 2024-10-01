@@ -5,8 +5,8 @@ from hmmlearn.hmm import CategoricalHMM
 from sklearn.metrics import log_loss, roc_auc_score
 
 class BKTModel:
-    def __init__(self):
-        self.model = CategoricalHMM(n_components=2, init_params="", n_iter=100)
+    def __init__(self, n_iter=100):
+        self.model = CategoricalHMM(n_components=2, init_params="", n_iter=n_iter)
 
         start_prob = np.array([0.5, 0.5])
         trans_prob = np.array([[0.7, 0.3],[0.3, 0.7]])
@@ -52,14 +52,6 @@ class BKTModel:
             self.model.fit(X, lengths)
 
             print("Finished model training. Printing final statistics...")
-            trained_start_prob = self.model.startprob_
-            trained_trans_prob = self.model.transmat_
-            trained_emission_prob = self.model.emissionprob_
-
-            print('Trained Start_Probabilities: ', trained_start_prob)
-            print('Trained Transition Probabilities: ', trained_trans_prob)
-            print('Trained Emission Probabilities: ', trained_emission_prob)
-
             y_score = self.model.predict_proba(X)[:, 1]
 
             loss = log_loss(X, y_score)  # logistical loss
