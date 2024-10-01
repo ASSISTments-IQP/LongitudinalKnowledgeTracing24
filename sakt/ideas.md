@@ -1,0 +1,8 @@
+- early stopping in batches
+- adjust dropout
+- lack of leakage
+- imbalanced class (too many "correct")
+- too few steps per epoch
+- batch size (128 v 256)
+- learning rate
+- too little data

@@ -1,3 +1,4 @@
+import scipy.sparse
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss, roc_auc_score
 import scipy.sparse as sp
@@ -48,7 +49,9 @@ class PFA:
 
 
         # Start creating the sparse array for the data
-        res_arr = sp.dok_array((data.shape[0], 3*(self.n_s+1)))
+        skill_arr = sp.dok_array((data.shape[0], self.n_s+1))
+        win_arr = sp.dok_array((data.shape[0], self.n_s+1))
+        fail_arr = sp.dok_array((data.shape[0], self.n_s+1))
         i = 0
 
         if self.verbose > 0:
@@ -56,24 +59,25 @@ class PFA:
                 if row['skill_id'] in self.skills:
                     skill_idx = np.where(self.skills == row['skill_id'])[0][0]
                 else:
-                    skill_idx = self.n_s + 1
+                    skill_idx = self.n_s
 
-                res_arr[i,skill_idx] = 1
-                res_arr[i,self.n_s+1+skill_idx] = row['wins']
-                res_arr[i,2*(self.n_s+1)+skill_idx] = row['fails']
+                skill_arr[i,skill_idx] = 1
+                win_arr[i,skill_idx] = row['wins']
+                fail_arr[i,skill_idx] = row['fails']
                 i += 1
         else:
             for idx, row in data.iterrows():
                 if row['skill_id'] in self.skills:
                     skill_idx = np.where(self.skills == row['skill_id'])[0][0]
                 else:
-                    skill_idx = self.n_s + 1
+                    skill_idx = self.n_s
 
-                res_arr[i, skill_idx] = 1
-                res_arr[i, self.n_s + 1 + skill_idx] = row['wins']
-                res_arr[i, 2 * (self.n_s + 1) + skill_idx] = row['fails']
+                skill_arr[i, skill_idx] = 1
+                win_arr[i, skill_idx] = row['wins']
+                fail_arr[i, skill_idx] = row['fails']
                 i += 1
 
+        res_arr = sp.hstack([skill_arr,win_arr,fail_arr])
 
         X = res_arr.tocoo()
         y = data.discrete_score.to_numpy(copy=True)
@@ -100,7 +104,7 @@ class PFA:
         print(f"Training loss: {ll}")
         print(f"Training AUC: {auc}")
 
-        return ll, auc
+        return auc
 
 
     def eval(self, data):
@@ -119,4 +123,4 @@ class PFA:
         print(f"Log loss: {ll}")
         print(f"AUC: {auc}")
 
-        return ll, auc
+        return auc
