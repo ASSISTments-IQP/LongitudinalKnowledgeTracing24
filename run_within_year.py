@@ -37,7 +37,7 @@ def run_one_fold(val_fold, data, model_type, year):
         model = PFA(verbose=0)
     if model_type == 'SAKT':
         model = SAKTModel()
-    if model == 'BKT':
+    if model_type == 'BKT':
         model = BKTModel(verbose=0)
 
     model.fit(train)
