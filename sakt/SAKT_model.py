@@ -27,7 +27,14 @@ class SAKTModel(tf.keras.Model):
         self.layer_norm2 = None
         self.output_layer = None
         self.loss_fn = tf.keras.losses.BinaryCrossentropy()
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+        
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=1e-3,
+        decay_steps=10000,
+        decay_rate=0.96,
+        staircase=True)
+
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
         self.device = "/GPU:0" if tf.config.list_physical_devices('GPU') else "/CPU:0"
         print(f"Using device: {self.device}")
     
@@ -180,30 +187,28 @@ class SAKTModel(tf.keras.Model):
         output = self.output_layer(out2)
         return tf.squeeze(output[:, -1, :], axis = 1)
 
-    def fit(self, train_df: pd.DataFrame, num_epochs: int = 10) -> None:
+    def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None, num_epochs: int = 10, early_stopping: bool = False, patience: int = 3):
         self.preprocess(train_df)
         total_samples = self._count_total_samples(train_df)
         iterations_per_epoch = (total_samples + self.batch_size - 1) // self.batch_size
-
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-        loss_fn = tf.keras.losses.BinaryCrossentropy()
-
         train_loss = tf.keras.metrics.Mean(name='train_loss')
         train_auc = tf.keras.metrics.AUC(name='train_auc')
         train_accuracy = tf.keras.metrics.BinaryAccuracy(name='train_accuracy')
+        best_val_auc = 0.0
+        epochs_since_improvement = 0
+
 
         for epoch in range(num_epochs):
-            train_loss.reset_state()
-            train_auc.reset_state()
-            train_accuracy.reset_state()
+            train_loss.reset_states()
+            train_auc.reset_states()
+            train_accuracy.reset_states()
 
             train_data = self._data_generator(train_df)
-
             train_pbar = tqdm.tqdm(train_data, desc=f"Epoch {epoch + 1}/{num_epochs} [Train]", ncols=100, total=iterations_per_epoch)
             for batch in train_pbar:
                 past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch = batch
-                loss, predictions = self._train_step(past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch, optimizer, loss_fn)
-                
+                loss, predictions = self._train_step(past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch)
+
                 train_loss.update_state(loss)
                 train_auc.update_state(y_batch, predictions)
                 train_accuracy.update_state(y_batch, predictions)
@@ -215,6 +220,24 @@ class SAKTModel(tf.keras.Model):
                 })
 
             print(f"Epoch {epoch + 1}/{num_epochs}: Loss={train_loss.result():.4f}, AUC={train_auc.result():.4f}, Accuracy={train_accuracy.result():.4f}")
+
+            if val_df is not None:
+                val_metrics = self.eval(val_df)
+                val_auc_score = val_metrics['auc']
+
+                if val_auc_score > best_val_auc:
+                    best_val_auc = val_auc_score
+                    epochs_since_improvement = 0
+                    self.save_weights('best_model_weights.h5')
+                else:
+                    epochs_since_improvement += 1
+
+                if early_stopping and epochs_since_improvement >= patience:
+                    print(f"Early stopping triggered after {epoch + 1} epochs.")
+                    break
+
+        if val_df is not None and early_stopping:
+            self.load_weights('best_model_weights.h5')
 
     def eval(self, val_df: pd.DataFrame) -> Dict[str, float]:
         total_samples = self._count_total_samples(val_df)
