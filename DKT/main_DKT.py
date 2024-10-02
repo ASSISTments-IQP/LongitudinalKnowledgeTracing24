@@ -7,7 +7,8 @@ import torch
 
 def main():
    logging.info("Starting main execution")
-   file_path = '23-24-problem_logs.csv'
+   file_path = 'non_skill_builder_data_new.csv'
+   #'23-24-problem_logs.csv'
 
    df = pd.read_csv(file_path)
    train, test= train_test_split(df, test_size=0.2, random_state=200)
