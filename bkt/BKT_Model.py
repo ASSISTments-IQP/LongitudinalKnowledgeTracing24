@@ -87,6 +87,7 @@ class BKTModel:
 
         ll = np.mean(lls)
         auc = np.mean(aucs)
+        self.n_s = len(self.skills)
 
         if self.verbose > 0:
             print("Finished model training. Printing final statistics...")
@@ -103,7 +104,6 @@ class BKTModel:
         oov_mod.emissionprob_ = em
 
         self.models[-1] = oov_mod
-        self.n_s = len(self.skills)
 
         return auc
 
