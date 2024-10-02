@@ -46,8 +46,7 @@ class BKTModel:
             print("Beginning data preprocessing.")
         skill_dict = self.preprocess(data)
 
-        self.skills = skill_dict.keys()
-        self.n_s = len(self.skills)
+
 
         lls = []
         aucs = []
@@ -70,6 +69,7 @@ class BKTModel:
                 continue
 
             self.models[skill].fit(X, lengths)
+            self.skills.append(skill)
 
             oov_prior += self.models[skill].startprob_
             oov_transmat += self.models[skill].transmat_
@@ -103,6 +103,7 @@ class BKTModel:
         oov_mod.emissionprob_ = em
 
         self.models[-1] = oov_mod
+        self.n_s = len(self.skills)
 
         return auc
 
