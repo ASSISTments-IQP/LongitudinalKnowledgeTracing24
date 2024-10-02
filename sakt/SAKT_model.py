@@ -26,28 +26,29 @@ class SAKTModel(tf.keras.Model):
         self.dropout2 = None
         self.layer_norm2 = None
         self.output_layer = None
-
+        self.loss_fn = tf.keras.losses.BinaryCrossentropy()
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         self.device = "/GPU:0" if tf.config.list_physical_devices('GPU') else "/CPU:0"
         print(f"Using device: {self.device}")
     
-    
+            
     @tf.function
-    def _train_step(self, past_exercises, past_responses, current_exercises, y, optimizer, loss_fn) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _train_step(self, past_exercises, past_responses, current_exercises, y):
         with tf.device(self.device):
             with tf.GradientTape() as tape:
                 predictions = self([past_exercises, past_responses, current_exercises], training=True)
-                loss = loss_fn(y, predictions)
+                loss = self.loss_fn(y, predictions)
             gradients = tape.gradient(loss, self.trainable_variables)
-            optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+            self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         return loss, predictions
 
     @tf.function
-    def _val_step(self, past_exercises, past_responses, current_exercises, y, loss_fn) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _val_step(self, past_exercises, past_responses, current_exercises, y):
         with tf.device(self.device):
             predictions = self([past_exercises, past_responses, current_exercises], training=False)
-            loss = loss_fn(y, predictions)
-
+            loss = self.loss_fn(y, predictions)
         return loss, predictions
+
     
     
 
@@ -95,6 +96,18 @@ class SAKTModel(tf.keras.Model):
                     batch_past_exercises, batch_past_responses, batch_current_exercises, batch_targets = [], [], [], []
 
         if batch_past_exercises:
+            pad_size = self.batch_size - len(batch_past_exercises)
+            if pad_size > 0:
+                pad_exercises = [ [0]*self.num_steps ] * pad_size
+                pad_responses = [ [0]*self.num_steps ] * pad_size
+                pad_current_exercises = [0] * pad_size
+                pad_targets = [0.0] * pad_size
+
+                batch_past_exercises.extend(pad_exercises)
+                batch_past_responses.extend(pad_responses)
+                batch_current_exercises.extend(pad_current_exercises)
+                batch_targets.extend(pad_targets)
+
             yield (
                 np.array(batch_past_exercises, dtype=np.int32),
                 np.array(batch_past_responses, dtype=np.int32),
