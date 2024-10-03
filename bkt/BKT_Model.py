@@ -129,7 +129,7 @@ class BKTModel:
             y_pred = state_probs.dot(self.models[skill].emissionprob_[:, 1])
             y_true = np.reshape(X, X.shape[0])
 
-            loss = log_loss(y_true, y_pred)  # logistical loss
+            loss = log_loss(y_true, y_pred labels=[0,1])  # logistical loss
             auc = roc_auc_score(y_true, y_pred)
             lls.append(loss)
             aucs.append(auc)
