@@ -101,7 +101,7 @@ class DKT:
 				seq.append(padded_feature_seq)
 
 				# Pad label sequence with shape [timesteps, vocab_size]
-				blank_labels = np.full((self.max_seq_len, self.vocab_size), -1, dtype=np.float32)
+				blank_labels = np.full((self.max_seq_len, self.vocab_size), -1, dtype=np.int8)
 				blank_labels[:len(sub_feature_seq), sub_feature_seq] = sub_correct_seq
 
 				lab.append(torch.tensor(blank_labels, dtype=torch.float32))
