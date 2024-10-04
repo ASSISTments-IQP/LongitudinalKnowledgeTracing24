@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
 
     res = {
-        year: {holdout_fold_num: run_one_fold(holdout_fold_num, sample_dict[year], model_type)}
+        year: {holdout_fold_num: run_one_fold(holdout_fold_num, sample_dict[year], model_type, year)}
     }
 
     with open(f'./wy_{model_type}_{year}_{holdout_fold_num}.json','w') as fout:
