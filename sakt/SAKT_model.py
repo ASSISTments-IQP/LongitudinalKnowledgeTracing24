@@ -7,7 +7,7 @@ import tqdm
 
 class SAKTModel(tf.keras.Model):
     def __init__(self, num_steps: int = 50, batch_size: int = 32, d_model: int = 128,
-                 num_heads: int = 8, dropout_rate: float = 0.2):
+                 num_heads: int = 8, dropout_rate: float = 0.2, verbose=1, gpu_num=0):
         super(SAKTModel, self).__init__()
         self.num_steps = num_steps
         self.batch_size = batch_size
@@ -35,7 +35,7 @@ class SAKTModel(tf.keras.Model):
         staircase=True)
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-        self.device = "/GPU:0" if tf.config.list_physical_devices('GPU') else "/CPU:0"
+        self.device = f"/GPU:{gpu_num}" if tf.config.list_physical_devices('GPU') else "/CPU:0"
         print(f"Using device: {self.device}")
     
             

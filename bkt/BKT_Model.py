@@ -5,7 +5,7 @@ from hmmlearn.hmm import CategoricalHMM
 from sklearn.metrics import log_loss, roc_auc_score
 
 class BKTModel:
-    def __init__(self, n_iter=100, verbose=1):
+    def __init__(self, n_iter=100, verbose=True):
         self.n_iter = 100
         self.n_s = 0
         self.verbose = verbose
@@ -22,10 +22,7 @@ class BKTModel:
         skill_dict = {}
         value_dict = {"seq": [], "lengths": []}
 
-        disable = True
-        if self.verbose > 0:
-            disable = False
-        for value, group in tqdm(grouped, disable=disable):
+        for value, group in tqdm(grouped, disable=not self.verbose):
             if value[0] != curr_skill:
                 value_dict['seq'] = np.concatenate(value_dict['seq']).reshape(-1, 1)
                 skill_dict[curr_skill] = value_dict
@@ -42,7 +39,7 @@ class BKTModel:
 
     def fit(self, data):
 
-        if self.verbose > 0:
+        if self.verbose:
             print("Beginning data preprocessing.")
         skill_dict = self.preprocess(data)
 
@@ -54,10 +51,9 @@ class BKTModel:
         oov_emmissionprob = np.zeros((2,2))
 
         disable = True
-        if self.verbose > 0:
-            disable = False
+        if self.verbose:
             print("Finished data processing. Beginning fitting process.")
-        for skill, data in tqdm(skill_dict.items(), disable=disable):
+        for skill, data in tqdm(skill_dict.items(), disable=not self.verbose):
             self.models[skill] = CategoricalHMM(n_components=2, n_iter=self.n_iter, tol=1e-4)
 
             X = skill_dict[skill]['seq']
@@ -87,7 +83,7 @@ class BKTModel:
         auc = roc_auc_score(final_y_true,final_y_pred)
         self.n_s = len(self.skills)
 
-        if self.verbose > 0:
+        if self.verbose:
             print("Finished model training. Printing final statistics...")
             print(f'Training Log Loss: {ll}')
             print(f'Training AUC: {auc}')
@@ -107,16 +103,13 @@ class BKTModel:
 
 
     def eval(self, data):
-        if self.verbose > 0:
+        if self.verbose:
             print("Beginning data preprocessing.")
         skill_dict = self.preprocess(data)
         y_trues = []
         y_preds = []
 
-        disable = True
-        if self.verbose > 0:
-            disable = False
-        for skill, data in tqdm(skill_dict.items(), disable=disable):
+        for skill, data in tqdm(skill_dict.items(), disable=not self.verbose):
             X = skill_dict[skill]['seq']
             lengths = skill_dict[skill]['lengths']
 
@@ -136,7 +129,7 @@ class BKTModel:
         ll = log_loss(final_y_true,final_y_pred)
         auc = roc_auc_score(final_y_true,final_y_pred)
 
-        if self.verbose > 0:
+        if self.verbose:
             print(f'Eval Log Loss: {ll}')
             print(f'Eval AUC: {auc}')
 

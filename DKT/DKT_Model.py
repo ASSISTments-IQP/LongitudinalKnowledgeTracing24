@@ -11,12 +11,20 @@ tf.config.run_functions_eagerly(True)
 
 
 class DKT_model(tf.keras.Model):
-	def __init__(self, vocab_size, num_dim, max_seq_len):
+	def __init__(self, vocab_size, num_dim, max_seq_len, gpu_num=1, verbose=True):
 		input = tf.keras.Input(shape=(max_seq_len,))
 		emb = Embedding(input_dim=vocab_size, output_dim=num_dim, mask_zero=True)(input)
 		dr = Dropout(0.2)(emb)
 		x = LSTM(124, activation='tanh', return_sequences=True)(dr)
 		output = TimeDistributed(Dense(vocab_size, activation='sigmoid'))(x)
+		gpus = tf.config.list_physical_devices('GPU')
+		if gpus:
+			tf.config.set_visible_devices(gpus[gpu_num], 'GPU')
+
+		if verbose:
+			self.verbose = 2
+		else:
+			self.verbose = 0
 		super(DKT_model, self).__init__(inputs=input, outputs=output)
 
 	def compile(self):
@@ -32,20 +40,22 @@ class DKT_model(tf.keras.Model):
 
 	@tf.function
 	def fit(self, x, y, epochs, batch_size):
-		return super(DKT_model, self).fit(x=x, y=y, epochs=epochs, batch_size=batch_size)
+		return super(DKT_model, self).fit(x=x, y=y, epochs=epochs, batch_size=batch_size, verbose = self.verbose)
 
 	def eval(self, x, y):
-		return super(DKT_model, self).evaluate(x=x, y=y)
+		return super(DKT_model, self).evaluate(x=x, y=y, verbose = self.verbose)
 
 
 class DKT:
-	def __init__(self):
+	def __init__(self, gpu_num=1, verbose=True):
 		self.model = None
 		self.vocab = []
 		self.vocab_size = 0
 		self.num_dim = 0
 		self.vocab_encoder = None
 		self.max_seq_len = 10
+		self.gpu_num = gpu_num
+		self.verbose = verbose
 
 
 	def preprocess(self, data, fitting=False):
@@ -72,7 +82,7 @@ class DKT:
 
 		seq = []
 		lab = []
-		for user, group in tqdm(grouped):
+		for user, group in tqdm(grouped, disable=not self.verbose):
 			group = group.sort_values(by='order_id')
 			feature_seq = group['encoded_problem_id'].to_numpy()
 			correct_seq = group['correct'].to_numpy()
@@ -104,11 +114,13 @@ class DKT:
 
 
 	def fit(self, data):
-		print("Beginning data preprocessing")
+		if self.verbose:
+			print("Beginning data preprocessing")
 		X, y = self.preprocess(data, fitting=True)
 
-		self.model = DKT_model(self.vocab_size, self.num_dim, self.max_seq_len)
-		print("Data preprocessing finished, beginning fitting.")
+		self.model = DKT_model(self.vocab_size, self.num_dim, self.max_seq_len, self.gpu_num, self.verbose)
+		if self.verbose:
+			print("Data preprocessing finished, beginning fitting.")
 		self.model.compile()
 
 		self.model.fit(X, y,

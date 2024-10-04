@@ -1,6 +1,7 @@
 from PFA.PFA_Model import PFA
 from bkt.BKT_Model import BKTModel
 from sakt.SAKT_model import SAKTModel
+from DKT.DKT_Model import DKT
 from concurrent.futures import ProcessPoolExecutor as Pool
 from functools import partial
 from tqdm import tqdm
@@ -39,6 +40,8 @@ def run_one_fold(val_fold, data, model_type, year):
         model = SAKTModel()
     if model_type == 'BKT':
         model = BKTModel(verbose=0)
+    if model_type == 'DKT':
+        model = DKT(verbose=0)
 
     model.fit(train)
     print(f"{model_type} fit for {year} with hold-out fold {val_fold}")
