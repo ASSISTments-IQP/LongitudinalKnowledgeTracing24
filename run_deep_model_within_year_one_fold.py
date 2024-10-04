@@ -31,16 +31,17 @@ if __name__ == '__main__':
 
     if len(sys.argv) != 4:
         raise Exception("Invalid number of args specified")
-    elif sys.argv[1] not in model_list:
-        raise Exception(f"Invalid model type specified, model type must be one of {str(model_list)[1:-1]}")
-    elif sys.argv[2] not in year_list:
-        raise Exception(f'Invalid year specified, model year must be one of {str(year_list)[1:-1]}')
-    elif sys.argv[3] not in range(5):
-        raise Exception(f"Invalid fold number provided")
 
     model_type = sys.argv[1]
     year = sys.argv[2]
-    holdout_fold_num = sys.argv[3]
+    holdout_fold_num = int(sys.argv[3])
+
+    if model_type not in model_list:
+        raise Exception(f"Invalid model type specified, model type must be one of {str(model_list)[1:-1]}")
+    elif year not in year_list:
+        raise Exception(f'Invalid year specified, model year must be one of {str(year_list)[1:-1]}')
+    elif holdout_fold_num not in range(5):
+        raise Exception(f"Invalid fold number provided")
 
     sample_dict = {}
 

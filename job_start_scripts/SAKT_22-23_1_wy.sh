@@ -2,7 +2,7 @@
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH --mem=32g
-#SBATCH -J "WY SAKT1"
+#SBATCH -J "SAKTWY22-231"
 #SBATCH -p short
 #SBATCH -t 12:00:00
 #SBATCH --gres=gpu:1

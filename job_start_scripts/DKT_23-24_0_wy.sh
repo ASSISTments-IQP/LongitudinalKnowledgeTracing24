@@ -2,7 +2,7 @@
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH --mem=32g
-#SBATCH -J "WY DKT0"
+#SBATCH -J "DKTWY23-240"
 #SBATCH -p short
 #SBATCH -t 12:00:00
 #SBATCH --gres=gpu:1
