@@ -46,10 +46,8 @@ class BKTModel:
             print("Beginning data preprocessing.")
         skill_dict = self.preprocess(data)
 
-
-
-        lls = []
-        aucs = []
+        y_trues = []
+        y_preds = []
 
         oov_prior = 0
         oov_transmat = np.zeros((2,2))
@@ -79,14 +77,14 @@ class BKTModel:
             y_pred = state_probs.dot(self.models[skill].emissionprob_[:,1])
             y_true = np.reshape(X,X.shape[0])
 
-            loss = log_loss(y_true, y_pred, labels=[0,1])  # logistical loss
-            auc = roc_auc_score(y_true, y_pred, labels=[0,1])
-            lls.append(loss)
-            aucs.append(auc)
+            y_trues.append(y_true)
+            y_preds.append(y_pred)
 
+        final_y_true = np.concatenate(y_trues, axis=None)
+        final_y_pred = np.concatenate(y_preds, axis=None)
 
-        ll = np.mean(lls)
-        auc = np.mean(aucs)
+        ll = log_loss(final_y_true,final_y_pred)
+        auc = roc_auc_score(final_y_true,final_y_pred)
         self.n_s = len(self.skills)
 
         if self.verbose > 0:
@@ -112,8 +110,8 @@ class BKTModel:
         if self.verbose > 0:
             print("Beginning data preprocessing.")
         skill_dict = self.preprocess(data)
-        lls = []
-        aucs = []
+        y_trues = []
+        y_preds = []
 
         disable = True
         if self.verbose > 0:
@@ -129,13 +127,14 @@ class BKTModel:
             y_pred = state_probs.dot(self.models[skill].emissionprob_[:, 1])
             y_true = np.reshape(X, X.shape[0])
 
-            loss = log_loss(y_true, y_pred, labels=[0,1])  # logistical loss
-            auc = roc_auc_score(y_true, y_pred, labels=[0,1])
-            lls.append(loss)
-            aucs.append(auc)
+            y_trues.append(y_true)
+            y_preds.append(y_pred)
 
-        ll = np.mean(lls)
-        auc = np.mean(aucs)
+        final_y_true = np.concatenate(y_trues, axis=None)
+        final_y_pred = np.concatenate(y_preds, axis=None)
+
+        ll = log_loss(final_y_true,final_y_pred)
+        auc = roc_auc_score(final_y_true,final_y_pred)
 
         if self.verbose > 0:
             print(f'Eval Log Loss: {ll}')
