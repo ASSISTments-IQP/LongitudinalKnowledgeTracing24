@@ -80,7 +80,7 @@ class BKTModel:
             y_true = np.reshape(X,X.shape[0])
 
             loss = log_loss(y_true, y_pred, labels=[0,1])  # logistical loss
-            auc = roc_auc_score(y_true, y_pred)
+            auc = roc_auc_score(y_true, y_pred, labels=[0,1])
             lls.append(loss)
             aucs.append(auc)
 
@@ -130,7 +130,7 @@ class BKTModel:
             y_true = np.reshape(X, X.shape[0])
 
             loss = log_loss(y_true, y_pred, labels=[0,1])  # logistical loss
-            auc = roc_auc_score(y_true, y_pred)
+            auc = roc_auc_score(y_true, y_pred, labels=[0,1])
             lls.append(loss)
             aucs.append(auc)
 
