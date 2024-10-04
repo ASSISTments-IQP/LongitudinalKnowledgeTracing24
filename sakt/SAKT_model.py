@@ -187,7 +187,7 @@ class SAKTModel(tf.keras.Model):
         output = self.output_layer(out2)
         return tf.squeeze(output[:, -1, :], axis = 1)
 
-    def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None, num_epochs: int = 10, early_stopping: bool = False, patience: int = 3):
+    def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None, num_epochs: int = 10, early_stopping: bool = True, patience: int = 3):
         self.preprocess(train_df)
         total_samples = self._count_total_samples(train_df)
         iterations_per_epoch = (total_samples + self.batch_size - 1) // self.batch_size
