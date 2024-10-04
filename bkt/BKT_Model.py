@@ -76,8 +76,8 @@ class BKTModel:
             y_trues.append(y_true)
             y_preds.append(y_pred)
 
-        final_y_true = np.concatenate(y_trues, axis=None)
-        final_y_pred = np.concatenate(y_preds, axis=None)
+        final_y_true = np.nan_to_num(np.concatenate(y_trues, axis=None))
+        final_y_pred = np.nan_to_num(np.concatenate(y_preds, axis=None))
 
         ll = log_loss(final_y_true,final_y_pred)
         auc = roc_auc_score(final_y_true,final_y_pred)
@@ -123,8 +123,8 @@ class BKTModel:
             y_trues.append(y_true)
             y_preds.append(y_pred)
 
-        final_y_true = np.concatenate(y_trues, axis=None)
-        final_y_pred = np.concatenate(y_preds, axis=None)
+        final_y_true = np.nan_to_num(np.concatenate(y_trues, axis=None))
+        final_y_pred = np.nan_to_num(np.concatenate(y_preds, axis=None))
 
         ll = log_loss(final_y_true,final_y_pred)
         auc = roc_auc_score(final_y_true,final_y_pred)
