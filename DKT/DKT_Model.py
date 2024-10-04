@@ -78,7 +78,7 @@ class DKT:
 
 		data['encoded_problem_id'] = self.vocab_encoder(data['prob_id_x_correct'])
 
-		grouped = data.groupby('user_id')
+		grouped = data.groupby('user_xid')
 
 		seq = []
 		lab = []
