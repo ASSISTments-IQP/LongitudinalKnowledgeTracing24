@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
     res = {}
 
-    with Pool(max_workers=2) as p:
+    with Pool(max_workers=5) as p:
         for l in p.map(partial(run_cv, model_type = sys.argv[1]) , sample_dict.items()):
             res[l[1]] = l[0]
 
