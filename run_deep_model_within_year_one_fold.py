@@ -19,9 +19,9 @@ def run_one_fold(val_fold, data, model_type, year):
     if model_type == 'SAKT':
         model = SAKTModel()
     if model_type == 'DKT':
-        model = DKT(verbose=0)
+        model = DKT()
 
-    model.fit(train)
+    model.fit(train, num_epochs=3)
     print(f"{model_type} fit for {year} with hold-out fold {val_fold}")
     return model.eval(validation)
 

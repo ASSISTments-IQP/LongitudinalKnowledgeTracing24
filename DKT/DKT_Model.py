@@ -113,7 +113,7 @@ class DKT:
 		return seq, lab
 
 
-	def fit(self, data):
+	def fit(self, data, num_epochs=10):
 		if self.verbose:
 			print("Beginning data preprocessing")
 		X, y = self.preprocess(data, fitting=True)
@@ -124,7 +124,7 @@ class DKT:
 		self.model.compile()
 
 		self.model.fit(X, y,
-					   epochs=10,
+					   epochs=num_epochs,
 					   batch_size=64)
 
 		print("Model Training finished, final statistics:")

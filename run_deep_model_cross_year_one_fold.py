@@ -7,19 +7,15 @@ from tqdm import tqdm
 import pandas as pd
 import sys, json
 
-model_list = ['BKT', 'PFA', 'DKT', 'SAKT']
+model_list = ['DKT', 'SAKT']
 
 
 def run_one_sample(train, test_samps, model_type):
-	if model_type == 'PFA':
-		model = PFA(verbose=0)
 	if model_type == 'SAKT':
 		model = SAKTModel()
-	if model_type == 'BKT':
-		model = BKTModel(verbose=0)
 	if model_type == 'DKT':
-		model = DKT(verbose=0)
-	model.fit(train)
+		model = DKT()
+	model.fit(train, num_epochs=3)
 	res = {}
 	for year, samp in test_samps.items():
 		res[year] = model.eval(samp)
