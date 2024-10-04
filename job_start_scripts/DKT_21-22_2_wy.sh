@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH --mem=32g
+#SBATCH --mem=128g
 #SBATCH -J "DKTWY21-222"
 #SBATCH -p short
 #SBATCH -t 12:00:00
