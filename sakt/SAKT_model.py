@@ -199,9 +199,9 @@ class SAKTModel(tf.keras.Model):
 
 
         for epoch in range(num_epochs):
-            train_loss.reset_states()
-            train_auc.reset_states()
-            train_accuracy.reset_states()
+            train_loss.reset_state()
+            train_auc.reset_state()
+            train_accuracy.reset_state()
 
             train_data = self._data_generator(train_df)
             train_pbar = tqdm.tqdm(train_data, desc=f"Epoch {epoch + 1}/{num_epochs} [Train]", ncols=100, total=iterations_per_epoch)
