@@ -59,11 +59,11 @@ class DKT:
 
 
 	def preprocess(self, data, fitting=False):
-		data = data.sort_values(by=['user_id', 'order_id'])
+		data = data.sort_values(by=['user_xid', 'start_time'])
 		data = data.fillna(0)  # Fill missing values with 0 for now
 
 		if fitting:
-			un = data['problem_id'].astype(str).unique()
+			un = data['old_problem_id'].astype(str).unique()
 			zer = un + '+0'
 			on = un + '+1'
 
@@ -72,9 +72,9 @@ class DKT:
 			self.num_dim = math.ceil(math.log(self.vocab_size))
 			self.vocab_encoder = StringLookup(vocabulary=self.vocab, output_mode='int', mask_token='na')
 
-		data['prob_id_x_correct'] = data['problem_id'].astype(str).copy()
-		data.loc[data['correct'] == 0, 'prob_id_x_correct'] += '+0'
-		data.loc[data['correct'] == 1, 'prob_id_x_correct'] += '+1'
+		data['prob_id_x_correct'] = data['old_problem_id'].astype(str).copy()
+		data.loc[data['discrete_score'] == 0, 'prob_id_x_correct'] += '+0'
+		data.loc[data['discrete_score'] == 1, 'prob_id_x_correct'] += '+1'
 
 		data['encoded_problem_id'] = self.vocab_encoder(data['prob_id_x_correct'])
 
@@ -83,9 +83,9 @@ class DKT:
 		seq = []
 		lab = []
 		for user, group in tqdm(grouped, disable=not self.verbose):
-			group = group.sort_values(by='order_id')
+			group = group.sort_values(by='start_time')
 			feature_seq = group['encoded_problem_id'].to_numpy()
-			correct_seq = group['correct'].to_numpy()
+			correct_seq = group['discrete_score'].to_numpy()
 
 			for start_idx in range(0, len(feature_seq), self.max_seq_len):
 				end_idx = min(start_idx + self.max_seq_len, len(feature_seq))
