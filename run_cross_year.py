@@ -1,5 +1,5 @@
 from PFA.PFA_Model import PFA
-from bkt.BKT_model_pybkt import BKTModel
+from bkt.BKT_Model import BKTModel
 from sakt.SAKT_model import SAKTModel
 from DKT.DKT_Model import DKT
 from multiprocessing import Pool
