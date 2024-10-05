@@ -130,7 +130,7 @@ class DKT:
 		return auc
 
 
-	def evaluate(self, data):
+	def eval(self, data):
 		if self.vocab_size == 0:
 			print("Model has not been trained yet.")
 			return
