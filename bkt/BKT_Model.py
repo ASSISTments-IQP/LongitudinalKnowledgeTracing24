@@ -5,8 +5,8 @@ from hmmlearn.hmm import CategoricalHMM
 from sklearn.metrics import log_loss, roc_auc_score
 
 class BKTModel:
-    def __init__(self, n_iter=100, verbose=True):
-        self.n_iter = 100
+    def __init__(self, n_iter=10, verbose=True):
+        self.n_iter = n_iter
         self.n_s = 0
         self.verbose = verbose
         self.skills = []
