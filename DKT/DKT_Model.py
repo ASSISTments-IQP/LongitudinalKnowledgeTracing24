@@ -17,9 +17,6 @@ class DKT_model(tf.keras.Model):
 		dr = Dropout(0.2)(emb)
 		x = LSTM(124, activation='tanh', return_sequences=True)(dr)
 		output = TimeDistributed(Dense(vocab_size, activation='sigmoid'))(x)
-		gpus = tf.config.list_physical_devices('GPU')
-		if gpus:
-
 		if verbose:
 			self.verbose = 2
 		else:
