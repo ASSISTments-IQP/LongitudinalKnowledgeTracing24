@@ -49,7 +49,7 @@ class DKT:
 		self.vocab_size = 0
 		self.num_dim = 0
 		self.vocab_encoder = None
-		self.max_seq_len = 10
+		self.max_seq_len = 50
 		self.verbose = verbose
 
 
@@ -108,7 +108,7 @@ class DKT:
 		return seq, lab
 
 
-	def fit(self, data, num_epochs=3):
+	def fit(self, data, num_epochs=5):
 		if self.verbose:
 			print("Beginning data preprocessing")
 		X, y = self.preprocess(data, fitting=True)

@@ -187,7 +187,7 @@ class SAKTModel(tf.keras.Model):
         output = self.output_layer(out2)
         return tf.squeeze(output[:, -1, :], axis = 1)
 
-    def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None, num_epochs: int = 1, early_stopping: bool = True, patience: int = 3):
+    def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None, num_epochs: int = 2, early_stopping: bool = True, patience: int = 3):
         self.preprocess(train_df)
         total_samples = self._count_total_samples(train_df)
         iterations_per_epoch = (total_samples + self.batch_size - 1) // self.batch_size
@@ -256,7 +256,7 @@ class SAKTModel(tf.keras.Model):
         val_pbar = tqdm.tqdm(val_data, desc="Evaluation [Val]", ncols=100, total=iterations)
         for batch in val_pbar:
             past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch = batch
-            loss, predictions = self._val_step(past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch, tf.keras.losses.BinaryCrossentropy())
+            loss, predictions = self._val_step(past_exercises_batch, past_responses_batch, current_exercises_batch, y_batch)
             
             val_loss.update_state(loss)
             val_auc.update_state(y_batch, predictions)
