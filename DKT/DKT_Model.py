@@ -11,7 +11,7 @@ tf.config.run_functions_eagerly(True)
 
 
 class DKT_model(tf.keras.Model):
-	def __init__(self, vocab_size, num_dim, max_seq_len, gpu_num=1, verbose=True):
+	def __init__(self, vocab_size, num_dim, max_seq_len, verbose=True):
 		input = tf.keras.Input(shape=(max_seq_len,))
 		emb = Embedding(input_dim=vocab_size, output_dim=num_dim, mask_zero=True)(input)
 		dr = Dropout(0.2)(emb)
@@ -19,7 +19,6 @@ class DKT_model(tf.keras.Model):
 		output = TimeDistributed(Dense(vocab_size, activation='sigmoid'))(x)
 		gpus = tf.config.list_physical_devices('GPU')
 		if gpus:
-			tf.config.set_visible_devices(gpus[gpu_num], 'GPU')
 
 		if verbose:
 			self.verbose = 2
@@ -47,14 +46,13 @@ class DKT_model(tf.keras.Model):
 
 
 class DKT:
-	def __init__(self, gpu_num=1, verbose=True):
+	def __init__(self, verbose=True):
 		self.model = None
 		self.vocab = []
 		self.vocab_size = 0
 		self.num_dim = 0
 		self.vocab_encoder = None
 		self.max_seq_len = 10
-		self.gpu_num = gpu_num
 		self.verbose = verbose
 
 
