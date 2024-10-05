@@ -113,7 +113,7 @@ class DKT:
 			print("Beginning data preprocessing")
 		X, y = self.preprocess(data, fitting=True)
 
-		self.model = DKT_model(self.vocab_size, self.num_dim, self.max_seq_len, self.gpu_num, self.verbose)
+		self.model = DKT_model(self.vocab_size, self.num_dim, self.max_seq_len, self.verbose)
 		if self.verbose:
 			print("Data preprocessing finished, beginning fitting.")
 		self.model.compile()
