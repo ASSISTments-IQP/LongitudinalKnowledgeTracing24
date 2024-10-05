@@ -59,7 +59,7 @@ class BKTModel:
             X = skill_dict[skill]['seq']
             lengths = skill_dict[skill]['lengths']
 
-            if max(lengths) < 5:
+            if max(lengths) < 5 or len(np.unique(X)) != 2:
                 continue
 
             self.models[skill].fit(X, lengths)
