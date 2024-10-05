@@ -15,7 +15,7 @@ def run_one_sample(train, test_samps, model_type):
 		model = SAKTModel()
 	if model_type == 'DKT':
 		model = DKT()
-	model.fit(train, num_epochs=3)
+	model.fit(train)
 	res = {}
 	for year, samp in test_samps.items():
 		res[year] = model.eval(samp)

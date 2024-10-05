@@ -95,7 +95,7 @@ class DKT:
 				sub_correct_seq = correct_seq[start_idx:end_idx]
 
 				# Pad feature sequence to max_seq_len
-				padded_feature_seq = F.pad(torch.tensor(sub_feature_seq, dtype=torch.float32),
+				padded_feature_seq = F.pad(torch.tensor(sub_feature_seq, dtype=torch.int8),
 										   (0, self.max_seq_len - len(sub_feature_seq)),
 										   value=0)
 				seq.append(padded_feature_seq)
@@ -104,7 +104,7 @@ class DKT:
 				blank_labels = np.full((self.max_seq_len, self.vocab_size), -1, dtype=np.int8)
 				blank_labels[:len(sub_feature_seq), sub_feature_seq] = sub_correct_seq
 
-				lab.append(torch.tensor(blank_labels, dtype=torch.float32))
+				lab.append(torch.tensor(blank_labels, dtype=torch.int8))
 
 		# Convert seq and lab to tensors
 		seq = torch.stack(seq)
@@ -113,7 +113,7 @@ class DKT:
 		return seq, lab
 
 
-	def fit(self, data, num_epochs=10):
+	def fit(self, data, num_epochs=3):
 		if self.verbose:
 			print("Beginning data preprocessing")
 		X, y = self.preprocess(data, fitting=True)

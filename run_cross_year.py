@@ -1,6 +1,7 @@
 from PFA.PFA_Model import PFA
 from bkt.BKT_Model import BKTModel
 from sakt.SAKT_model import SAKTModel
+from DKT.DKT_Model import DKT
 from multiprocessing import Pool
 from tqdm import tqdm
 import pandas as pd
@@ -15,6 +16,8 @@ def run_one_sample(train, test, sample_num, model_type):
         model = SAKTModel()
     if model_type == 'BKT':
         model = BKTModel(verbose=0)
+    if model_type == 'DKT':
+        model = DKT(verbose=0)
     model.fit(train)
     res = model.eval(test)
     return res, sample_num
