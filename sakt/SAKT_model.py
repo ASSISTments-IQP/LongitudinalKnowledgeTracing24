@@ -6,7 +6,7 @@ import tqdm
 
 
 class SAKTModel(tf.keras.Model):
-    def __init__(self, num_steps: int = 50, batch_size: int = 32, d_model: int = 128,
+    def __init__(self, num_steps: int = 50, batch_size: int = 16, d_model: int = 128,
                  num_heads: int = 8, dropout_rate: float = 0.2, verbose=1, gpu_num=0):
         super(SAKTModel, self).__init__()
         self.num_steps = num_steps
@@ -187,7 +187,7 @@ class SAKTModel(tf.keras.Model):
         output = self.output_layer(out2)
         return tf.squeeze(output[:, -1, :], axis = 1)
 
-    def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None, num_epochs: int = 2, early_stopping: bool = True, patience: int = 3):
+    def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None, num_epochs: int = 5, early_stopping: bool = True, patience: int = 1):
         self.preprocess(train_df)
         total_samples = self._count_total_samples(train_df)
         iterations_per_epoch = (total_samples + self.batch_size - 1) // self.batch_size
