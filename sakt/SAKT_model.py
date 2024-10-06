@@ -270,12 +270,12 @@ class SAKTModel(tf.keras.Model):
 
         metrics = {
             'loss': val_loss.result().numpy(),
-            'auc': val_auc.result().numpy(),
+            'auc': val_auc.result(),
             'accuracy': val_accuracy.result().numpy()
         }
 
         print(f"Validation: Loss={metrics['loss']:.4f}, AUC={metrics['auc']:.4f}, Accuracy={metrics['accuracy']:.4f}")
-        return metrics
+        return metrics['auc']
 
 
 
