@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import tqdm
 
-
 class SAKTModel(tf.keras.Model):
     def __init__(self, num_steps: int = 50, batch_size: int = 16, d_model: int = 128,
                  num_heads: int = 8, dropout_rate: float = 0.2, verbose=1, gpu_num=0):
@@ -25,7 +24,7 @@ class SAKTModel(tf.keras.Model):
         self.ffn = None
         self.dropout2 = None
         self.layer_norm2 = None
-        self.output_layer = None
+        self.output_layer = None 
         self.loss_fn = tf.keras.losses.BinaryCrossentropy()
         
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -275,7 +274,7 @@ class SAKTModel(tf.keras.Model):
         }
 
         print(f"Validation: Loss={metrics['loss']:.4f}, AUC={metrics['auc']:.4f}, Accuracy={metrics['accuracy']:.4f}")
-        return metrics['auc']
-
+        return float(metrics['auc'])
+ 
 
 
