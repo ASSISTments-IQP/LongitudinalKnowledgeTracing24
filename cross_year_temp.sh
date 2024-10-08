@@ -4,7 +4,7 @@
 #SBATCH --mem=128g
 #SBATCH -J "MODEL_TYPECYYEARSAMPLE_NUM"
 #SBATCH -p short
-#SBATCH -t 12:00:00
+#SBATCH -t 24:00:00
 #SBATCH --gres=gpu:1
 module load python
 module load cuda
