@@ -1,0 +1,8 @@
+tqdm
+pandas
+numpy
+scipy
+tensorflow[and-cuda]>=2.17.0
+scikit-learn
+keras
+hmmlearn
