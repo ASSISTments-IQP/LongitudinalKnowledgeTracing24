@@ -61,14 +61,14 @@ class SAKTModel(tf.keras.Model):
     def _data_generator(self, df: pd.DataFrame) -> Generator[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], None, None]:
         df = df.copy()
         df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
-        df = df[['user_xid', 'old_problem_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
+        df = df[['user_xid', 'skill_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
         user_xids = df['user_xid'].unique()
 
         batch_past_exercises, batch_past_responses, batch_current_exercises, batch_targets = [], [], [], []
 
         for user_xid in user_xids:
             user_data = df[df['user_xid'] == user_xid].sort_values('start_time')
-            exercise_seq = [self.exercise_map.get(id, 0) for id in user_data['old_problem_id']]
+            exercise_seq = [self.exercise_map.get(id, 0) for id in user_data['skill_id']]
             response_seq = user_data['discrete_score'].astype(int).tolist()
 
 
@@ -124,7 +124,7 @@ class SAKTModel(tf.keras.Model):
     def _count_total_samples(self, df: pd.DataFrame) -> int:
         df = df.copy()
         df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
-        df = df[['user_xid', 'old_problem_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
+        df = df[['user_xid', 'skill_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
         user_xids = df['user_xid'].unique()
 
         total_samples = 0
@@ -139,8 +139,8 @@ class SAKTModel(tf.keras.Model):
 
     def preprocess(self, df: pd.DataFrame) -> None:
         df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
-        df = df[['user_xid', 'old_problem_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
-        unique_problems = df['old_problem_id'].unique()
+        df = df[['user_xid', 'skill_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
+        unique_problems = df['skill_id'].unique()
         self.exercise_map = {problem: idx for idx, problem in enumerate(unique_problems, start=1)}
         self.num_exercises = len(self.exercise_map)
         self.exercise_embedding = tf.keras.layers.Embedding(input_dim=self.num_exercises + 1, output_dim=self.d_model)
