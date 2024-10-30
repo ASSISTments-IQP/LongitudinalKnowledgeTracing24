@@ -3,7 +3,7 @@ from DKT.DKT_Model import DKT
 from tqdm import tqdm
 import pandas as pd
 import sys, json
-model_list = ['DKT','SAKT']
+model_list = ['DKT','SAKT-E','SAKT-KC']
 
 
 def run_one_fold(val_fold, data, model_type, year):
@@ -16,8 +16,10 @@ def run_one_fold(val_fold, data, model_type, year):
 
     train = pd.concat(train_list)
 
-    if model_type == 'SAKT':
-        model = SAKTModel()
+    if model_type == 'SAKT-E':
+        model = SAKTModel(problem=True)
+    if model_type == 'SAKT-KC':
+        model = SAKTModel(problem=False)
     if model_type == 'DKT':
         model = DKT()
 

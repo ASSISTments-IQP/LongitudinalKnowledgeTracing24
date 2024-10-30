@@ -6,7 +6,7 @@ import tqdm
 
 class SAKTModel(tf.keras.Model):
     def __init__(self, num_steps: int = 50, batch_size: int = 16, d_model: int = 128,
-                 num_heads: int = 8, dropout_rate: float = 0.2, verbose=1, gpu_num=0, problem=True):
+                 num_heads: int = 8, dropout_rate: float = 0.2, init_learning_rate = 1e-3, verbose=1, gpu_num=0, problem=True):
         super(SAKTModel, self).__init__()
         self.num_steps = num_steps
         self.batch_size = batch_size
@@ -28,7 +28,7 @@ class SAKTModel(tf.keras.Model):
         self.loss_fn = tf.keras.losses.BinaryCrossentropy()
         
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-        initial_learning_rate=1e-3,
+        initial_learning_rate=init_learning_rate,
         decay_steps=10000,
         decay_rate=0.96,
         staircase=True)

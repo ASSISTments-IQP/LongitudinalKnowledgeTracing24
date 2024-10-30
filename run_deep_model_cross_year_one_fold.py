@@ -7,12 +7,14 @@ from tqdm import tqdm
 import pandas as pd
 import sys, json
 
-model_list = ['DKT', 'SAKT']
+model_list = ['DKT', 'SAKT-E', 'SAKT-KC']
 
 
 def run_one_sample(train, test_samps, model_type):
 	if model_type == 'SAKT-E':
-		model = SAKTModel()
+		model = SAKTModel(problem=True)
+	if model_type == 'SAKT-KC':
+		model = SAKTModel(problem=False)
 	if model_type == 'DKT':
 		model = DKT()
 	model.fit(train)
