@@ -6,7 +6,7 @@ import tqdm
 
 class SAKTModel(tf.keras.Model):
     def __init__(self, num_steps: int = 50, batch_size: int = 16, d_model: int = 128,
-                 num_heads: int = 8, dropout_rate: float = 0.2, verbose=1, gpu_num=0):
+                 num_heads: int = 8, dropout_rate: float = 0.2, verbose=1, gpu_num=0, problem=True):
         super(SAKTModel, self).__init__()
         self.num_steps = num_steps
         self.batch_size = batch_size
@@ -32,6 +32,11 @@ class SAKTModel(tf.keras.Model):
         decay_steps=10000,
         decay_rate=0.96,
         staircase=True)
+
+        if problem:
+            self.vocab_col = 'old_problem_id'
+        else:
+            self.vocab_col = 'skill_id'
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
         self.device = f"/GPU:{gpu_num}" if tf.config.list_physical_devices('GPU') else "/CPU:0"
@@ -61,14 +66,14 @@ class SAKTModel(tf.keras.Model):
     def _data_generator(self, df: pd.DataFrame) -> Generator[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], None, None]:
         df = df.copy()
         df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
-        df = df[['user_xid', 'old_problem_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
+        df = df[['user_xid', self.vocab_col, 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
         user_xids = df['user_xid'].unique()
 
         batch_past_exercises, batch_past_responses, batch_current_exercises, batch_targets = [], [], [], []
 
         for user_xid in user_xids:
             user_data = df[df['user_xid'] == user_xid].sort_values('start_time')
-            exercise_seq = [self.exercise_map.get(id, 0) for id in user_data['old_problem_id']]
+            exercise_seq = [self.exercise_map.get(id, 0) for id in user_data[self.vocab_col]]
             response_seq = user_data['discrete_score'].astype(int).tolist()
 
 
@@ -124,13 +129,13 @@ class SAKTModel(tf.keras.Model):
     def _count_total_samples(self, df: pd.DataFrame) -> int:
         df = df.copy()
         df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
-        df = df[['user_xid', 'old_problem_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
+        df = df[['user_xid', self.vocab_col, 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
         user_xids = df['user_xid'].unique()
 
         total_samples = 0
         for user_xid in user_xids:
             user_data = df[df['user_xid'] == user_xid]
-            exercise_seq = [self.exercise_map.get(id, 0) for id in user_data['old_problem_id']]
+            exercise_seq = [self.exercise_map.get(id, 0) for id in user_data[self.vocab_col]]
             if len(exercise_seq) >= 2:
                 total_samples += len(exercise_seq) - 1
 
@@ -139,8 +144,8 @@ class SAKTModel(tf.keras.Model):
 
     def preprocess(self, df: pd.DataFrame) -> None:
         df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
-        df = df[['user_xid', 'old_problem_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
-        unique_problems = df['old_problem_id'].unique()
+        df = df[['user_xid', self.vocab_col, 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
+        unique_problems = df[self.vocab_col].unique()
         self.exercise_map = {problem: idx for idx, problem in enumerate(unique_problems, start=1)}
         self.num_exercises = len(self.exercise_map)
         self.exercise_embedding = tf.keras.layers.Embedding(input_dim=self.num_exercises + 1, output_dim=self.d_model)
@@ -186,7 +191,7 @@ class SAKTModel(tf.keras.Model):
         output = self.output_layer(out2)
         return tf.squeeze(output[:, -1, :], axis = 1)
 
-    def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None, num_epochs: int = 5, early_stopping: bool = True, patience: int = 1):
+    def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None, num_epochs: int = 4, early_stopping: bool = True, patience: int = 1):
         self.preprocess(train_df)
         total_samples = self._count_total_samples(train_df)
         iterations_per_epoch = (total_samples + self.batch_size - 1) // self.batch_size

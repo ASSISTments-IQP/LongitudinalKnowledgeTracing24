@@ -1,6 +1,6 @@
 if __name__ == '__main__':
 	years = ['19-20','20-21','21-22','22-23','23-24']
-	models = ['DKT', 'SAKT']
+	models = ['DKT', 'SAKT-E', 'SAKT-KC']
 	fold_nums = range(5)
 	sample_nums = range(1,11)
 

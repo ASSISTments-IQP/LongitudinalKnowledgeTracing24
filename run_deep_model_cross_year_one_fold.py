@@ -11,7 +11,7 @@ model_list = ['DKT', 'SAKT']
 
 
 def run_one_sample(train, test_samps, model_type):
-	if model_type == 'SAKT':
+	if model_type == 'SAKT-E':
 		model = SAKTModel()
 	if model_type == 'DKT':
 		model = DKT()
