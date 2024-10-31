@@ -70,7 +70,7 @@ class DKT:
 			self.vocab = np.concatenate([zer, on])
 			self.vocab_size = len(self.vocab) + 2
 			self.num_dim = math.ceil(math.log(self.vocab_size))
-			self.vocab_encoder = StringLookup(vocabulary=self.vocab, output_mode='int', mask_token=0)
+			self.vocab_encoder = StringLookup(vocabulary=self.vocab, output_mode='int', mask_token='na')
 			self.label_encoder = IntegerLookup(vocabulary=data[self.vocab_col].unique(), mask_token=0, output_mode='int')
 
 		data['vocab_id_x_correct'] = data[self.vocab_col].astype(str).copy()
