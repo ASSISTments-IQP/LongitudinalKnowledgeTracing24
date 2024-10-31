@@ -27,7 +27,7 @@ class DKT_model(tf.keras.Model):
 		def custom_loss(y_true, y_pred):
 			indices = np.array(y_true[:,0])
 			y_true_rel = y_true[:,1]
-			y_pred_rel = tf.Tensor(np.array(y_pred)[np.arange(y_true.shape[0]).astype(int),indices.astype(int)])
+			y_pred_rel = tf.Tensor(np.array(y_pred)[np.arange(y_true.shape[0]).astype(int),np.arange(y_true.shape[1]).astype_int,indices.astype(int)])
 			return tf.keras.losses.binary_crossentropy(y_true_rel, y_pred_rel)
 
 		super(DKT_model, self).compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3),
@@ -124,7 +124,7 @@ class DKT:
 		f_seq = torch.stack(f_seq)
 		l_seq = torch.stack(l_seq)
 		lab = torch.stack(lab)
-		lab = torch.hstack([l_seq,lab])
+		lab = torch.stack([l_seq,lab])
 
 		return f_seq, lab
 
