@@ -7,7 +7,7 @@ from tqdm import tqdm
 import pandas as pd
 import sys, json
 
-model_list = ['DKT', 'SAKT-E', 'SAKT-KC']
+model_list = ['DKT-E', 'DKT-KC', 'SAKT-E', 'SAKT-KC']
 
 
 def run_one_sample(train, test_samps, model_type):
@@ -15,8 +15,10 @@ def run_one_sample(train, test_samps, model_type):
 		model = SAKTModel(problem=True)
 	if model_type == 'SAKT-KC':
 		model = SAKTModel(problem=False)
-	if model_type == 'DKT':
-		model = DKT()
+	if model_type == 'DKT-E':
+		model = DKT(problem=True)
+	if model_type == 'DKT-KC':
+		model = DKT(problem=False)
 	model.fit(train)
 	res = {}
 	for year, samp in test_samps.items():

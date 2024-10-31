@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, LSTM, Embedding, TimeDistributed, Dropout, StringLookup
+from tensorflow.keras.layers import Dense, LSTM, Embedding, TimeDistributed, Dropout, StringLookup, IntegerLookup
 import torch.nn.functional as F
 import torch
 from tqdm import tqdm
@@ -25,9 +25,9 @@ class DKT_model(tf.keras.Model):
 
 	def compile(self):
 		def custom_loss(y_true, y_pred):
-			indices = tf.math.not_equal(y_true, -1)
-			y_true_rel = y_true[indices]
-			y_pred_rel = y_pred[indices]
+			indices = y_true[:,0]
+			y_true_rel = y_true[:,1]
+			y_pred_rel = y_pred[np.arange(y_true.shape[0]),indices]
 			return tf.keras.losses.binary_crossentropy(y_true_rel, y_pred_rel)
 
 		super(DKT_model, self).compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3),
@@ -43,14 +43,19 @@ class DKT_model(tf.keras.Model):
 
 
 class DKT:
-	def __init__(self, verbose=True):
+	def __init__(self, verbose=True, problem=False):
 		self.model = None
 		self.vocab = []
 		self.vocab_size = 0
 		self.num_dim = 0
 		self.vocab_encoder = None
+		self.label_encoder = None
 		self.max_seq_len = 50
-		self.verbose = verbose
+		self.verbose = verbose,
+		if problem:
+			self.vocab_col = 'old_problem_id'
+		else:
+			self.vocab_col = 'skill_id'
 
 
 	def preprocess(self, data, fitting=False):
@@ -58,29 +63,33 @@ class DKT:
 		data = data.fillna(0)  # Fill missing values with 0 for now
 
 		if fitting:
-			un = data['skill_id'].astype(str).unique()
+			un = data[self.vocab_col].astype(str).unique()
 			zer = un + '+0'
 			on = un + '+1'
 
 			self.vocab = np.concatenate([zer, on])
 			self.vocab_size = len(self.vocab) + 2
 			self.num_dim = math.ceil(math.log(self.vocab_size))
-			self.vocab_encoder = StringLookup(vocabulary=self.vocab, output_mode='int', mask_token='na')
+			self.vocab_encoder = StringLookup(vocabulary=self.vocab, output_mode='int', mask_token=0)
+			self.label_encoder = IntegerLookup(vocabulary=data[self.vocab_col].unique(), mask_token=0, output_mode='int')
 
-		data['skill_id_x_correct'] = data['skill_id'].astype(str).copy()
-		data.loc[data['discrete_score'] == 0, 'skill_id_x_correct'] += '+0'
-		data.loc[data['discrete_score'] == 1, 'skill_id_x_correct'] += '+1'
+		data['vocab_id_x_correct'] = data[self.vocab_col].astype(str).copy()
+		data.loc[data['discrete_score'] == 0, 'vocab_id_x_correct'] += '+0'
+		data.loc[data['discrete_score'] == 1, 'vocab_id_x_correct'] += '+1'
 
-		data['encoded_problem_id'] = self.vocab_encoder(data['skill_id_x_correct'])
+		data['encoded_vocab_id'] = self.vocab_encoder(data['vocab_id_x_correct'])
+		data['encoded_label_id'] = self.label_encoder(data[self.vocab_col])
 
 		grouped = data.groupby('user_xid')
 
-		seq = []
+		f_seq = []
+		l_seq = []
 		lab = []
 		for user, group in tqdm(grouped, disable=not self.verbose):
 			group = group.sort_values(by='start_time')
-			feature_seq = group['encoded_problem_id'].to_numpy()
+			feature_seq = group['encoded_vocab_id'].to_numpy()
 			correct_seq = group['discrete_score'].to_numpy()
+			label_seq = group['encoded_label_id'].to_numpy()
 
 			for start_idx in range(0, len(feature_seq), self.max_seq_len):
 				end_idx = min(start_idx + self.max_seq_len, len(feature_seq))
@@ -88,12 +97,23 @@ class DKT:
 				# Get subsequence for this user
 				sub_feature_seq = feature_seq[start_idx:end_idx]
 				sub_correct_seq = correct_seq[start_idx:end_idx]
+				sub_label_seq = label_seq[start_idx:end_idx]
 
 				# Pad feature sequence to max_seq_len
-				padded_feature_seq = F.pad(torch.tensor(sub_feature_seq, dtype=torch.int8),
+				padded_feature_seq = F.pad(torch.tensor(sub_feature_seq, dtype=torch.int64),
 										   (0, self.max_seq_len - len(sub_feature_seq)),
 										   value=0)
-				seq.append(padded_feature_seq)
+				f_seq.append(padded_feature_seq)
+
+				padded_label_seq = F.pad(torch.tensor(sub_label_seq, dtype=torch.int64),
+										 (0, self.max_seq_len - len(sub_label_seq)),
+										 value=0)
+				l_seq.append(padded_label_seq)
+
+				padded_correct_seq = F.pad(torch.tensor(sub_correct_seq,dtype=torch.int8),
+										 (0,self.max_seq_len - len(sub_correct_seq)),
+										   value=-1)
+
 
 				# Pad label sequence with shape [timesteps, vocab_size]
 				blank_labels = np.full((self.max_seq_len, self.vocab_size), -1, dtype=np.int8)
@@ -101,11 +121,13 @@ class DKT:
 
 				lab.append(torch.tensor(blank_labels, dtype=torch.int8))
 
-		# Convert seq and lab to tensors
-		seq = torch.stack(seq)
+		# Convert f_seq and lab to tensors
+		f_seq = torch.stack(f_seq)
+		l_seq = torch.stack(l_seq)
 		lab = torch.stack(lab)
+		lab = torch.hstack([l_seq,lab])
 
-		return seq, lab
+		return f_seq, lab
 
 
 	def fit(self, data, num_epochs=5):
