@@ -113,13 +113,12 @@ class DKT:
 				padded_correct_seq = F.pad(torch.tensor(sub_correct_seq,dtype=torch.int8),
 										 (0,self.max_seq_len - len(sub_correct_seq)),
 										   value=-1)
+				lab.append(padded_correct_seq)
 
 
 				# Pad label sequence with shape [timesteps, vocab_size]
-				blank_labels = np.full((self.max_seq_len, self.vocab_size), -1, dtype=np.int8)
-				blank_labels[:len(sub_feature_seq), sub_feature_seq] = sub_correct_seq
-
-				lab.append(torch.tensor(blank_labels, dtype=torch.int8))
+				# blank_labels = np.full((self.max_seq_len, self.vocab_size), -1, dtype=np.int8)
+				# blank_labels[:len(sub_feature_seq), sub_feature_seq] = sub_correct_seq
 
 		# Convert f_seq and lab to tensors
 		f_seq = torch.stack(f_seq)
