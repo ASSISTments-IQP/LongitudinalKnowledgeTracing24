@@ -25,7 +25,7 @@ def objective(trial):
     return val_auc
     
 study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler())
-study.optimize(objective, n_trials=50)
+study.optimize(objective, n_trials=10)
 
 
 print("Best hyperparameters:", study.best_params)
