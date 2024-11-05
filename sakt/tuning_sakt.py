@@ -1,5 +1,5 @@
 import optuna
-import SAKT_model
+from SAKT_model import SAKTModel
 import pandas as pd
 
 train_df = pd.read_csv('../Data/samples/23-24/sample3.csv')
@@ -11,7 +11,7 @@ def objective(trial):
     num_heads = trial.suggest_int('num_heads', 2, 16, step = 2),
     dropout_rate = trial.suggest_int('dropout_rate', 0.1, 0.5)
     
-    model = SAKT_model(
+    model = SAKTmodel(
         num_steps = num_steps,
         batch_size = batch_size,
         d_model = d_model,
