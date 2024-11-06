@@ -1,34 +1,57 @@
 import optuna
 from SAKT_model import SAKTModel
 import pandas as pd
+import numpy as np
+from multiprocessing import Pool
 
-train_df = pd.read_csv('../Data/samples/23-24/sample3.csv')
-val_df = pd.read_csv('../Data/samples/23-24/sample4.csv')
+
+def run_one_fold(data, test_fold, ns, bs, dm, nh, dr):
+    test_data = data.pop(test_fold)
+    train_data = pd.concat(data)
+
+    train_data.drop_duplicates(subset=['problem_log_id'])
+    test_data.drop_duplicates(subset=['problem_log_id'])
+
+    train_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
+    test_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
+
+    mod = SAKTModel(ns, bs, dm, nh, dr, gpu_num=test_fold)
+    mod.fit(train_data)
+    return mod.eval(test_data)
+
+
 def objective(trial):
+    df = pd.read_csv('../Data/samples/validation_sample.csv')
+
+    alogs = df.assignment_log_id.unique()
+    np.random.shuffle(alogs)
+    folds = np.array_split(alogs, 5)
+
+    data = []
+    for i in range(5):
+        data.append(df[df['assignment_log_id'].isin(folds[i])].copy())
+
     num_steps = trial.suggest_int('num_steps', 20, 100, step = 10),
-    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64]),
+    batch_size = trial.suggest_categorical('batch_size', 16, 64, step=8),
     d_model = trial.suggest_int('d_model', 128, 512, step = 32),
     num_heads = trial.suggest_int('num_heads', 2, 16, step = 2),
     dropout_rate = trial.suggest_int('dropout_rate', 0.1, 0.5)
-    
-    model = SAKTmodel(
-        num_steps = num_steps,
-        batch_size = batch_size,
-        d_model = d_model,
-        num_heads = num_heads,
-        dropout_rate = dropout_rate
-    )
-    
-    model.preprocess(train_df)
-    model.fit(train_df, val_df, num_epochs = 5, early_stopping = True, patience = 2)
-    val_auc = model.eval(val_df)['auc']
-    return val_auc
-    
-study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler())
-study.optimize(objective, n_trials=10)
+
+    res = []
+    args = zip([data] * 5, range(5), [num_steps] * 5, [batch_size] * 5, [d_model] * 5, [num_heads] * 5, [dropout_rate] * 5)
+    with Pool(5) as p:
+        for l in p.starmap(run_one_fold, args):
+            res.append(l)
+
+    return np.mean(res)
 
 
-print("Best hyperparameters:", study.best_params)
-print("Best validation AUC:", study.best_value)
+if __name__ == '__main__':
+    study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler())
+    study.optimize(objective, n_trials=10)
+
+
+    print("Best hyperparameters:", study.best_params)
+    print("Best validation AUC:", study.best_value)
     
     

@@ -238,7 +238,7 @@ class SAKTModel(tf.keras.Model):
         if val_df is not None and early_stopping:
             self.load_weights('best_model_weights.h5')
 
-    def eval(self, val_df: pd.DataFrame) -> Dict[str, float]:
+    def eval(self, val_df: pd.DataFrame):
         total_samples = self._count_total_samples(val_df)
         iterations = (total_samples + self.batch_size - 1) // self.batch_size
 
