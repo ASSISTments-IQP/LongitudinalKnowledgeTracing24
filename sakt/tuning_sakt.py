@@ -32,7 +32,7 @@ def objective(trial):
         data.append(df[df['assignment_log_id'].isin(folds[i])].copy())
 
     num_steps = trial.suggest_int('num_steps', 20, 100, step = 10),
-    batch_size = trial.suggest_categorical('batch_size', 16, 64, step=8),
+    batch_size = trial.suggest_int('batch_size', 16, 64, step=8),
     d_model = trial.suggest_int('d_model', 128, 512, step = 32),
     num_heads = trial.suggest_int('num_heads', 2, 16, step = 2),
     dropout_rate = trial.suggest_int('dropout_rate', 0.1, 0.5)
