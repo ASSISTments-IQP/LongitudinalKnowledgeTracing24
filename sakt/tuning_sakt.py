@@ -25,10 +25,10 @@ def objective(trial):
 
     alogs = df.assignment_log_id.unique()
     np.random.shuffle(alogs)
-    folds = np.array_split(alogs, 5)
+    folds = np.array_split(alogs, 4)
 
     data = []
-    for i in range(5):
+    for i in range(4):
         data.append(df[df['assignment_log_id'].isin(folds[i])].copy())
 
     num_steps = trial.suggest_int('num_steps', 20, 100, step = 10),
@@ -38,8 +38,8 @@ def objective(trial):
     dropout_rate = trial.suggest_int('dropout_rate', 0.1, 0.5)
 
     res = []
-    args = zip([data] * 5, range(5), [num_steps] * 5, [batch_size] * 5, [d_model] * 5, [num_heads] * 5, [dropout_rate] * 5)
-    with Pool(5) as p:
+    args = zip([data] * 4, range(4), [num_steps] * 4, [batch_size] * 4, [d_model] * 4, [num_heads] * 4, [dropout_rate] * 4)
+    with Pool(4) as p:
         for l in p.starmap(run_one_fold, args):
             res.append(l)
 
