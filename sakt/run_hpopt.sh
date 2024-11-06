@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH --mem=512g
+#SBATCH --mem=128g
 #SBATCH -J "SAKT HPOPT"
 #SBATCH -p long
 #SBATCH -t 7-00:00:00
