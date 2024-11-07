@@ -1,33 +1,28 @@
 import numpy as np
-import torch
-from torch import nn
+from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
-import torch.nn.functional as F
 import torch
 from tqdm import tqdm
 import pandas as pd
 from sklearn.metrics import roc_auc_score, accuracy_score
 import math
 
+class DKTModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim):
+        super(DKTModel, self).__init__()
+        self.emb = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
+        self.dr = nn.Dropout(0.2)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, vocab_size)
+        self.sigmoid = nn.Sigmoid()
 
-# no verbose for now
-class DKT_model(nn.Module):
-	def __init__(self, vocab_size, embedding_dim, hidden_dim):
-		super(DKT_model, self).__init__()
-		self.emb = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
-		self.dr = nn.Dropout(0.2)
-		self.ltsm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
-		self.fc = nn.Linear(hidden_dim, vocab_size)
-		self.sigmoid = nn.Sigmoid
-  
-  
-	def forward(self, x):
-		x = self.emb(x)
-		x = self.dr(x)
-		output, _ = self.ltsm(x)
-		output = self.fc(output)
-		output = self.sigmoid(output)
-		return output
+    def forward(self, x):
+        x = self.emb(x)
+        x = self.dr(x)
+        output, _ = self.lstm(x)
+        output = self.fc(output)
+        output = self.sigmoid(output)
+        return output
 
 class DKTDataset(Dataset):
     def __init__(self, data, vocab_to_idx, max_seq_len):
@@ -36,38 +31,43 @@ class DKTDataset(Dataset):
         self.max_seq_len = max_seq_len
         self.samples = []
         self._prep_samples()
-        
+
     def _prep_samples(self):
         user_groups = self.data.groupby('user_xid')
         for uid, u_data in user_groups:
             u_data = u_data.sort_values('start_time')
             u_data['skill_id'] = u_data['skill_id'].astype(str)
-            u_data['skill_id_n_corr'] = u_data['skill_id']
-            u_data.loc[u_data['discrete_score'] == 0, 'skill_id_n_corr'] += '0'
-            u_data.loc[u_data['discrete_score'] == 1, 'skill_id_n_corr'] += '1'
+            u_data['skill_id_x_corr'] = u_data['skill_id']
+            u_data.loc[u_data['discrete_score'] == 0, 'skill_id_x_corr'] += '+0'
+            u_data.loc[u_data['discrete_score'] == 1, 'skill_id_x_corr'] += '+1'
             encoded_seq = [self.vocab_to_idx.get(s, self.vocab_to_idx['<UNK>']) for s in u_data['skill_id_x_corr']]
             correct_seq = u_data['discrete_score'].to_numpy()
-            
+
             seq_len = len(encoded_seq)
             for start_idx in range(0, seq_len, self.max_seq_len):
                 end_idx = min(start_idx + self.max_seq_len, seq_len)
                 sub_feat_seq = encoded_seq[start_idx:end_idx]
                 sub_correct_seq = correct_seq[start_idx:end_idx]
-                #pad thaim
-                pad_len = self.max_seq_len -len(sub_feat_seq)
+                # Pad the sequence
+                pad_len = self.max_seq_len - len(sub_feat_seq)
                 input_seq = sub_feat_seq + [self.vocab_to_idx['<PAD>']] * pad_len
-                
-                label_seq = np.full((self.max_seq_len, len(self.vocab_to_idx)), -1 , dtype = np.float32)
+
+                label_seq = np.full((self.max_seq_len, len(self.vocab_to_idx)), -1, dtype=np.float32)
                 for i, (enc, corr) in enumerate(zip(sub_feat_seq, sub_correct_seq)):
+                    # Ensure corr is 0 or 1
+                    corr = int(corr)
+                    if corr not in [0, 1]:
+                        corr = 0  # Handle invalid values
                     label_seq[i, enc] = corr
-                
                 self.samples.append((input_seq, label_seq))
+
     def __len__(self):
         return len(self.samples)
-    def __get_item__(self, idx):
+
+    def __getitem__(self, idx):
         input_seq, label = self.samples[idx]
-        return torch.tensor(input_seq, dtype=torch.long), torch.tensor(label, dtype = torch.float32)
-    
+        return torch.tensor(input_seq, dtype=torch.long), torch.tensor(label, dtype=torch.float32)
+
 def compute_auc(y_true, y_pred):
     y_true_np = y_true.cpu().numpy()
     y_pred_np = y_pred.cpu().numpy()
@@ -78,110 +78,163 @@ def compute_auc(y_true, y_pred):
     return auc
 
 def compute_accuracy(y_true, y_pred):
-    y_pred_labels = (y_pred.cpu.numpy() >= 0.5).astype(int)
-    y_true_labels = y_true.cpu.numpy().astype(int)
+    y_pred_labels = (y_pred.cpu().numpy() >= 0.5).astype(int)
+    y_true_labels = y_true.cpu().numpy().astype(int)
     acc = accuracy_score(y_true_labels, y_pred_labels)
     return acc
 
 class DKT:
-	def __init__(self, batch_size = 64, max_seq_len = 50, verbose=True):
-		self.model = None
-		self.vocab = []
-		self.vocab_size = 0
-		self.embedding_dim = 0
-		self.max_seq_len = 50
-        self.batch_size = batch_size
+    def __init__(self, batch_size=64, max_seq_len=50, verbose=True):
+        self.model = None
+        self.vocab = []
+        self.vocab_size = 0
+        self.max_seq_len = max_seq_len
         self.verbose = verbose
+        self.batch_size = batch_size
+        self.vocab_to_idx = None
+        self.idx_to_vocab = None
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    def preprocess(self, data, fitting=True):
+        data = data.copy()
+        data['start_time'] = pd.to_datetime(
+            data['start_time'],
+            infer_datetime_format=True,
+            utc=True,
+            errors='coerce'  # Handle parsing errors
+        )
+        data = data[['user_xid', 'skill_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
+        data = data.fillna({'skill_id': 'unknown_skill', 'discrete_score': 0})
+        data['skill_id'] = data['skill_id'].astype(str)
+        data['discrete_score'] = pd.to_numeric(data['discrete_score'], errors='coerce').fillna(0).astype(int)
+        data['discrete_score'] = data['discrete_score'].clip(lower=0, upper=1)  # Ensure values are 0 or 1
 
-	def preprocess(self, data, fitting=False):
-		data = data.sort_values(by=['user_xid', 'start_time'])
-		data = data.fillna(0)  # Fill missing values with 0 for now
+        if fitting:
+            un = data['skill_id'].unique()
+            zer = un + '+0'
+            on = un + '+1'
 
-		if fitting:
-			un = data['skill_id'].astype(str).unique()
-			zer = un + '+0'
-			on = un + '+1'
+            self.vocab = np.concatenate([zer, on])
+            self.vocab_size = len(self.vocab) + 2
+            self.embedding_dim = max(50, math.ceil(math.log(self.vocab_size)))
+            self.vocab_to_idx = {token: idx + 2 for idx, token in enumerate(self.vocab)}
+            self.vocab_to_idx['<PAD>'] = 0
+            self.vocab_to_idx['<UNK>'] = 1  # Corrected key
+            self.idx_to_vocab = {idx: token for token, idx in self.vocab_to_idx.items()}
+        return data
 
-			self.vocab = np.concatenate([zer, on])
-			self.vocab_size = len(self.vocab) + 2
-			self.num_dim = math.ceil(math.log(self.vocab_size))
-			self.vocab_encoder = StringLookup(vocabulary=self.vocab, output_mode='int', mask_token='na')
+    def train(self, train_data, num_epochs=5):
+        train_data = self.preprocess(train_data, fitting=True)
+        dataset = DKTDataset(train_data, self.vocab_to_idx, self.max_seq_len)
+        if len(dataset) == 0:
+            print("No data to train on. Exiting training.")
+            return
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
-		data['skill_id_x_correct'] = data['skill_id'].astype(str).copy()
-		data.loc[data['discrete_score'] == 0, 'skill_id_x_correct'] += '+0'
-		data.loc[data['discrete_score'] == 1, 'skill_id_x_correct'] += '+1'
+        self.model = DKTModel(self.vocab_size, self.embedding_dim, hidden_dim=124).to(self.device)
+        criterion = nn.BCELoss()
+        optimizer = optim.Adam(self.model.parameters(), lr=1e-3)
 
-		data['encoded_problem_id'] = self.vocab_encoder(data['skill_id_x_correct'])
+        for epoch in range(num_epochs):
+            self.model.train()
+            total_loss = 0.0
+            total_preds = []
+            total_labels = []
 
-		grouped = data.groupby('user_xid')
+            for batch_idx, (input_seq, label_seq) in enumerate(
+                    tqdm(dataloader, desc=f'Epoch {epoch + 1}/{num_epochs}', disable=not self.verbose)):
+                input_seq = input_seq.to(self.device)
+                label_seq = label_seq.to(self.device)
 
-		seq = []
-		lab = []
-		for user, group in tqdm(grouped, disable=not self.verbose):
-			group = group.sort_values(by='start_time')
-			feature_seq = group['encoded_problem_id'].to_numpy()
-			correct_seq = group['discrete_score'].to_numpy()
+                optimizer.zero_grad()
+                outputs = self.model(input_seq)
 
-			for start_idx in range(0, len(feature_seq), self.max_seq_len):
-				end_idx = min(start_idx + self.max_seq_len, len(feature_seq))
+                # Mask out padding and entries with -1 labels
+                mask = (label_seq != -1)
+                y_pred = outputs[mask]
+                y_true = label_seq[mask]
 
-				# Get subsequence for this user
-				sub_feature_seq = feature_seq[start_idx:end_idx]
-				sub_correct_seq = correct_seq[start_idx:end_idx]
+                if y_true.numel() == 0:
+                    continue  # Skip if no valid entries in batch
 
-				# Pad feature sequence to max_seq_len
-				padded_feature_seq = F.pad(torch.tensor(sub_feature_seq, dtype=torch.int8),
-										   (0, self.max_seq_len - len(sub_feature_seq)),
-										   value=0)
-				seq.append(padded_feature_seq)
+                # Ensure y_true is within [0, 1]
+                y_true = torch.clamp(y_true, min=0.0, max=1.0)
 
-				# Pad label sequence with shape [timesteps, vocab_size]
-				blank_labels = np.full((self.max_seq_len, self.vocab_size), -1, dtype=np.int8)
-				blank_labels[:len(sub_feature_seq), sub_feature_seq] = sub_correct_seq
+                loss = criterion(y_pred, y_true)
+                loss.backward()
+                optimizer.step()
 
-				lab.append(torch.tensor(blank_labels, dtype=torch.int8))
+                total_loss += loss.item()
 
-		# Convert seq and lab to tensors
-		seq = torch.stack(seq)
-		lab = torch.stack(lab)
+                total_preds.append(y_pred.detach())
+                total_labels.append(y_true.detach())
 
-		return seq, lab
+            avg_loss = total_loss / len(dataloader) if len(dataloader) > 0 else float('inf')
 
+            if total_preds:
+                all_preds = torch.cat(total_preds)
+                all_labels = torch.cat(total_labels)
+                auc = compute_auc(all_labels, all_preds)
+                acc = compute_accuracy(all_labels, all_preds)
+            else:
+                auc = 0.0
+                acc = 0.0
 
-	def fit(self, data, num_epochs=5):
-		if self.verbose:
-			print("Beginning data preprocessing")
-		X, y = self.preprocess(data, fitting=True)
+            print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {avg_loss:.4f}, AUC: {auc:.4f}, Accuracy: {acc:.4f}")
 
-		self.model = DKT_model(self.vocab_size, self.num_dim, self.max_seq_len, self.verbose)
-		if self.verbose:
-			print("Data preprocessing finished, beginning fitting.")
-		self.model.compile()
+    def eval(self, val_data):
+        if self.model is None:
+            print('Model has not been trained yet')
+            return
 
-		self.model.fit(X, y,
-					   epochs=num_epochs,
-					   batch_size=64)
+        val_data = self.preprocess(val_data, fitting=False)
+        dataset = DKTDataset(val_data, self.vocab_to_idx, self.max_seq_len)
+        if len(dataset) == 0:
+            print("No data to evaluate on.")
+            return
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
 
-		print("Model Training finished, final statistics:")
-		loss, acc, auc = self.model.eval(X, y)
-		print(f"Training loss: {loss}")
-		print(f"Training AUC: {auc}")
+        self.model.eval()
+        total_loss = 0.0
+        total_preds = []
+        total_labels = []
+        criterion = nn.BCELoss()
 
-		return auc
+        with torch.no_grad():
+            for batch_idx, (input_seq, label_seq) in enumerate(
+                    tqdm(dataloader, desc="Evaluation", disable=not self.verbose)):
+                input_seq = input_seq.to(self.device)
+                label_seq = label_seq.to(self.device)
 
+                outputs = self.model(input_seq)
 
-	def eval(self, data):
-		if self.vocab_size == 0:
-			print("Model has not been trained yet.")
-			return
+                # Mask out padding and entries with -1 labels
+                mask = (label_seq != -1)
+                y_pred = outputs[mask]
+                y_true = label_seq[mask]
 
-		X, y = self.preprocess(data)
-		loss, accuracy, auc = self.model.eval(X, y)
+                if y_true.numel() == 0:
+                    continue  # Skip if no valid entries in batch
 
-		print("Evaulation Results")
-		print(f"Test Loss: {loss}")
-		print(f"Test Accuracy: {accuracy}")
-		print(f"Test AUC: {auc}")
+                # Ensure y_true is within [0, 1]
+                y_true = torch.clamp(y_true, min=0.0, max=1.0)
 
-		return auc
+                loss = criterion(y_pred, y_true)
+                total_loss += loss.item()
+
+                total_preds.append(y_pred)
+                total_labels.append(y_true)
+
+        avg_loss = total_loss / len(dataloader) if len(dataloader) > 0 else float('inf')
+        if total_preds:
+            all_preds = torch.cat(total_preds)
+            all_labels = torch.cat(total_labels)
+            auc = compute_auc(all_labels, all_preds)
+            acc = compute_accuracy(all_labels, all_preds)
+        else:
+            auc = 0.0
+            acc = 0.0
+
+        print(f"Evaluation Results - Loss: {avg_loss:.4f}, AUC: {auc:.4f}, Accuracy: {acc:.4f}")
+
+        return auc
