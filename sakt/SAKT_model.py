@@ -2,7 +2,7 @@ import tensorflow as tf
 from typing import Tuple, Generator, Dict
 import pandas as pd
 import numpy as np
-import tqdm
+import tqdm, os
 
 class SAKTModel(tf.keras.Model):
     def __init__(self, num_steps: int = 50, batch_size: int = 16, d_model: int = 128,
@@ -32,7 +32,7 @@ class SAKTModel(tf.keras.Model):
         decay_steps=10000,
         decay_rate=0.96,
         staircase=True)
-        tf.config.set_visible_devices(tf.config.list_physical_devices('GPU')[gpu_num])
+        os.environ['CUDA_VISIBLE_DEVICES']=gpu_num
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
         self.device = f"/GPU:{gpu_num}" if tf.config.list_physical_devices('GPU') else "/CPU:0"
