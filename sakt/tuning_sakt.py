@@ -11,7 +11,7 @@ def objective(trial):
     num_heads = trial.suggest_int('num_heads', 2, 16, step = 2),
     dropout_rate = trial.suggest_int('dropout_rate', 0.1, 0.5)
     
-    model = SAKTmodel(
+    model = SAKTModel(
         num_steps = num_steps,
         batch_size = batch_size,
         d_model = d_model,
