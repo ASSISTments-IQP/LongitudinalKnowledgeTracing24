@@ -21,7 +21,7 @@ def run_one_fold(data, test_fold, ns, bs, dm, dr, ne, lr):
 
 
 def objective(trial):
-    df = pd.read_csv('../Data/samples/validation_sample.csv')
+    df = pd.read_csv('../Data/samples/19-20/sample1.csv')
 
     alogs = df.assignment_log_id.unique()
     np.random.shuffle(alogs)
