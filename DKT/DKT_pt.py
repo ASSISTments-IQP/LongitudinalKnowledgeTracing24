@@ -100,7 +100,7 @@ class DKT:
         self.idx_to_vocab = None
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+        
     def preprocess(self, data, fitting=True):
         data = data.copy()
         data['start_time'] = pd.to_datetime(

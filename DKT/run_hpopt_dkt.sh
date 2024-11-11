@@ -5,7 +5,7 @@
 #SBATCH -J "DKTHPOPT"
 #SBATCH -p long
 #SBATCH -t 7-00:00:00
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:2
 module load python/3.12.7
 module load cuda
 source ~/myenvs/lkt-env/bin/activate

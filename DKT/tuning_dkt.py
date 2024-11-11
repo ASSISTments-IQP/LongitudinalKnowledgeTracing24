@@ -37,7 +37,7 @@ def objective(trial):
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
     num_epochs = trial.suggest_int('num_epochs', 3, 50)
     learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-2, log=True)
-
+    
     print(batch_size)
     res = []
     args = zip([data] * 4, range(4), [num_steps] * 4, [batch_size] * 4, [d_model] * 4, [dropout_rate] * 4, [num_epochs] * 4, [learning_rate] * 4)
