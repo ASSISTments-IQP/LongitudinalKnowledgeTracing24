@@ -32,7 +32,7 @@ class SAKTModel(tf.keras.Model):
         decay_steps=10000,
         decay_rate=0.96,
         staircase=True)
-        os.environ['CUDA_VISIBLE_DEVICES']=gpu_num
+        os.environ['CUDA_VISIBLE_DEVICES']=str(gpu_num)
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
         self.device = f"/GPU:{gpu_num}" if tf.config.list_physical_devices('GPU') else "/CPU:0"
@@ -190,6 +190,7 @@ class SAKTModel(tf.keras.Model):
     def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame = None, num_epochs: int = 5, early_stopping: bool = True, patience: int = 1):
         self.preprocess(train_df)
         total_samples = self._count_total_samples(train_df)
+        print(self.batch_size)
         iterations_per_epoch = (total_samples + self.batch_size - 1) // self.batch_size
         train_loss = tf.keras.metrics.Mean(name='train_loss')
         train_auc = tf.keras.metrics.AUC(name='train_auc')
