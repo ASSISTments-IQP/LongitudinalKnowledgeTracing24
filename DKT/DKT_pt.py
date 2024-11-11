@@ -98,7 +98,7 @@ class DKT:
         self.learning_rate = learning_rate
         self.vocab_to_idx = None
         self.idx_to_vocab = None
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
+        # os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
     def preprocess(self, data, fitting=True):
