@@ -3,7 +3,7 @@
 #SBATCH -n 1
 #SBATCH --mem=128g
 #SBATCH -J "DKTHPOPT"
-#SBATCH -p long
+#SBATCH -p academic
 #SBATCH -t 7-00:00:00
 #SBATCH --gres=gpu:1
 module load python/3.12.7
