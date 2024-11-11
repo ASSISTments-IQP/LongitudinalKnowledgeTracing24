@@ -1,25 +1,27 @@
+import math
 import numpy as np
+import os
+import pandas as pd
+import torch
+from sklearn.metrics import roc_auc_score, accuracy_score
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
-import torch
 from tqdm import tqdm
-import pandas as pd
-from sklearn.metrics import roc_auc_score, accuracy_score
-import math
+
 
 class DKTModel(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, dropout_rate):
         super(DKTModel, self).__init__()
         self.emb = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
-        self.dr = nn.Dropout(0.2)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
+        self.dr = nn.Dropout(dropout_rate)
         self.fc = nn.Linear(hidden_dim, vocab_size)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.emb(x)
-        x = self.dr(x)
         output, _ = self.lstm(x)
+        output = self.dr(output)
         output = self.fc(output)
         output = self.sigmoid(output)
         return output
@@ -84,15 +86,19 @@ def compute_accuracy(y_true, y_pred):
     return acc
 
 class DKT:
-    def __init__(self, batch_size=64, max_seq_len=50, verbose=True):
+    def __init__(self, batch_size=64, num_steps=50, hidden_dim_size=124, dropout_rate=0.2, learning_rate=1e-3, verbose=True, gpu_num=1):
         self.model = None
         self.vocab = []
         self.vocab_size = 0
-        self.max_seq_len = max_seq_len
+        self.num_steps = num_steps
         self.verbose = verbose
+        self.hidden_dim_size = hidden_dim_size
         self.batch_size = batch_size
+        self.dropout_rate = dropout_rate
+        self.learning_rate = learning_rate
         self.vocab_to_idx = None
         self.idx_to_vocab = None
+        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def preprocess(self, data, fitting=True):
@@ -125,15 +131,15 @@ class DKT:
 
     def train(self, train_data, num_epochs=5):
         train_data = self.preprocess(train_data, fitting=True)
-        dataset = DKTDataset(train_data, self.vocab_to_idx, self.max_seq_len)
+        dataset = DKTDataset(train_data, self.vocab_to_idx, self.num_steps)
         if len(dataset) == 0:
             print("No data to train on. Exiting training.")
             return
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
-        self.model = DKTModel(self.vocab_size, self.embedding_dim, hidden_dim=124).to(self.device)
+        self.model = DKTModel(self.vocab_size, self.embedding_dim, self.hidden_dim_size, self.dropout_rate).to(self.device)
         criterion = nn.BCELoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=1e-3)
+        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
         for epoch in range(num_epochs):
             self.model.train()
@@ -188,7 +194,7 @@ class DKT:
             return
 
         val_data = self.preprocess(val_data, fitting=False)
-        dataset = DKTDataset(val_data, self.vocab_to_idx, self.max_seq_len)
+        dataset = DKTDataset(val_data, self.vocab_to_idx, self.num_steps)
         if len(dataset) == 0:
             print("No data to evaluate on.")
             return

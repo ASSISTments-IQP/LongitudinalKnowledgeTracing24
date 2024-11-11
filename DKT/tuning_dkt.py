@@ -1,11 +1,11 @@
 import optuna
-from SAKT_model import SAKTModel
+from DKT_pt import DKT
 import pandas as pd
 import numpy as np
 from multiprocessing import Pool
 
 
-def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr):
+def run_one_fold(data, test_fold, ns, bs, dm, dr, ne, lr):
     test_data = data.pop(test_fold)
     train_data = pd.concat(data)
 
@@ -15,8 +15,8 @@ def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr):
     train_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
     test_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
 
-    mod = SAKTModel(ns, bs, dm, nh, dr, ilr, ldr, gpu_num=test_fold)
-    mod.fit(train_data, num_epochs=ne)
+    mod = DKT(bs, ns, dm, dr, lr, gpu_num=test_fold)
+    mod.train(train_data, num_epochs=ne)
     return mod.eval(test_data)
 
 
@@ -34,15 +34,13 @@ def objective(trial):
     num_steps = trial.suggest_int('num_steps', 20, 100, step = 10)
     batch_size = trial.suggest_int('batch_size', 16, 64, step=8)
     d_model = trial.suggest_int('d_model', 64, 512, step = 32)
-    num_heads = trial.suggest_int('num_heads', 2, 32, step = 2)
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
     num_epochs = trial.suggest_int('num_epochs', 3, 50)
-    init_learning_rate = trial.suggest_float('init_learning_rate', 1e-6, 1e-2, log=True)
-    learning_decay_rate = trial.suggest_float('learning_decay_rate', 0.7, 0.99)
+    learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-2, log=True)
 
     print(batch_size)
     res = []
-    args = zip([data] * 4, range(4), [num_steps] * 4, [batch_size] * 4, [d_model] * 4, [num_heads] * 4, [dropout_rate] * 4, [num_epochs] * 4, [init_learning_rate] * 4, [learning_decay_rate] * 4)
+    args = zip([data] * 4, range(4), [num_steps] * 4, [batch_size] * 4, [d_model] * 4, [dropout_rate] * 4, [num_epochs] * 4, [learning_rate] * 4)
     with Pool(4) as p:
         for l in p.starmap(run_one_fold, args):
             res.append(l)

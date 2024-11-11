@@ -2,7 +2,7 @@
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH --mem=128g
-#SBATCH -J "SAKT HPOPT"
+#SBATCH -J "SAKTHPOPT"
 #SBATCH -p long
 #SBATCH -t 7-00:00:00
 #SBATCH --gres=gpu:4
