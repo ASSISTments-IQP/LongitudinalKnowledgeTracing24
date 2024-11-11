@@ -227,7 +227,7 @@ class SAKTModel(tf.keras.Model):
                 if val_auc_score > best_val_auc:
                     best_val_auc = val_auc_score
                     epochs_since_improvement = 0
-                    self.save_weights('best_model_weights.h5')
+                    self.save_weights('best_model.weights.h5')
                 else:
                     epochs_since_improvement += 1
 
@@ -236,7 +236,7 @@ class SAKTModel(tf.keras.Model):
                     break
 
         if val_df is not None and early_stopping:
-            self.load_weights('best_model_weights.h5')
+            self.load_weights('best_model.weights.h5')
 
     def eval(self, val_df: pd.DataFrame) -> Dict[str, float]:
         total_samples = self._count_total_samples(val_df)
@@ -274,7 +274,7 @@ class SAKTModel(tf.keras.Model):
         }
 
         print(f"Validation: Loss={metrics['loss']:.4f}, AUC={metrics['auc']:.4f}, Accuracy={metrics['accuracy']:.4f}")
-        return float(metrics['auc'])
+        return metrics
  
 
 

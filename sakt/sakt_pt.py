@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from typing import Tuple, Generator, Dict
+from typing import Tuple, Generator
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from sklearn.metrics import roc_auc_score, accuracy_score
-
+from sklearn.metrics import roc_auc_score
+from torch.utils.tensorboard import SummaryWriter
 
 class SAKTModel(nn.Module):
     def __init__(self, num_steps: int = 50, batch_size: int = 16, d_model: int = 128,
@@ -18,31 +18,32 @@ class SAKTModel(nn.Module):
         self.num_heads = num_heads
         self.dropout_rate = dropout_rate
         self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
-        
+
         self.exercise_map = {}
         self.num_exercises = 0
 
         # Define model layers
-        self.exercise_embedding = nn.Embedding(self.num_exercises + 1, self.d_model)
         self.response_embedding = nn.Embedding(2, self.d_model)
         self.position_embedding = nn.Embedding(self.num_steps, self.d_model)
         self.multi_head_attention = nn.MultiheadAttention(embed_dim=self.d_model, num_heads=self.num_heads, dropout=self.dropout_rate)
-        
+
         self.dropout1 = nn.Dropout(self.dropout_rate)
         self.layer_norm1 = nn.LayerNorm(self.d_model)
-        
+
         self.ffn = nn.Sequential(
             nn.Linear(self.d_model, self.d_model * 4),
             nn.ReLU(),
             nn.Linear(self.d_model * 4, self.d_model)
         )
-        
+
         self.dropout2 = nn.Dropout(self.dropout_rate)
         self.layer_norm2 = nn.LayerNorm(self.d_model)
         self.output_layer = nn.Linear(self.d_model, 1)
-        
+
         self.loss_fn = nn.BCEWithLogitsLoss()
-        self.to(self.device)
+
+        # Initialize TensorBoard writer
+        self.writer = SummaryWriter(log_dir='runs/SAKT_experiment')
         print(f"Using device: {self.device}")
 
     def _data_generator(self, df: pd.DataFrame) -> Generator[
@@ -59,6 +60,10 @@ class SAKTModel(nn.Module):
             user_data = df[df['user_xid'] == user_xid].sort_values('start_time')
             exercise_seq = [self.exercise_map.get(id, 0) for id in user_data['old_problem_id']]
             response_seq = user_data['discrete_score'].astype(int).tolist()
+
+            # Debugging: Check if any index is out of valid range
+            if any(idx > self.num_exercises or idx < 0 for idx in exercise_seq):
+                print(f"Invalid indices found in exercise_seq for user {user_xid}: {exercise_seq}")
 
             for idx in range(1, len(exercise_seq)):
                 start_idx = max(0, idx - self.num_steps)
@@ -109,31 +114,52 @@ class SAKTModel(nn.Module):
         unique_problems = df['old_problem_id'].unique()
         self.exercise_map = {problem: idx for idx, problem in enumerate(unique_problems, start=1)}
         self.num_exercises = len(self.exercise_map)
+        print("Exercise map:", self.exercise_map)  # Debugging
+
         self.exercise_embedding = nn.Embedding(self.num_exercises + 1, self.d_model)
-        print("Model layers initialized.")
+        nn.init.xavier_uniform_(self.exercise_embedding.weight)  # Initialize embeddings
+        self.exercise_embedding.to(self.device)
+        self.to(self.device)
+        print("Model layers initialized and moved to device.")
 
     def forward(self, past_exercises, past_responses, current_exercises):
-        past_exercise_embeddings = self.exercise_embedding(past_exercises)  # [batch_size, seq_len, d_model]
-        past_response_embeddings = self.response_embedding(past_responses)  # [batch_size, seq_len, d_model]
+        # Verify that all indices are within the valid range
+        if (past_exercises < 0).any() or (past_exercises > self.num_exercises).any():
+            print("Invalid embedding indices found in past_exercises.")
+
+        # Reinitialize embeddings if NaNs are detected
+        if torch.isnan(self.exercise_embedding.weight).any():
+            print("NaNs detected in embedding weights. Reinitializing.")
+            nn.init.xavier_uniform_(self.exercise_embedding.weight)
+
+        past_exercise_embeddings = self.exercise_embedding(past_exercises)
+        if torch.isnan(past_exercise_embeddings).any():
+            print("NaNs in past_exercise_embeddings")
+        
+        past_response_embeddings = self.response_embedding(past_responses)
         past_interactions_embeddings = past_exercise_embeddings + past_response_embeddings
         seq_len = past_exercises.size(1)
         position_ids = torch.arange(seq_len, device=self.device).unsqueeze(0)
-        position_embeddings = self.position_embedding(position_ids)  # [1, seq_len, d_model]
+        position_embeddings = self.position_embedding(position_ids)
         past_interactions_embeddings += position_embeddings
-        attention_mask = (past_exercises != 0).unsqueeze(1).repeat(1, self.num_heads, 1)  # [batch_size, num_heads, seq_len]
-        attention_mask = attention_mask.view(-1, 1, seq_len)  # Reshape to [batch_size * num_heads, 1, seq_len]
-        query = self.exercise_embedding(current_exercises).unsqueeze(1)  # [batch_size, 1, d_model]
-        key = value = past_interactions_embeddings.permute(1, 0, 2)  # [seq_len, batch_size, d_model]
-        query = query.permute(1, 0, 2)  # [1, batch_size, d_model]
-        attention_output, _ = self.multi_head_attention(query, key, value, attn_mask=attention_mask)
-        attention_output = attention_output.permute(1, 0, 2)  # [batch_size, 1, d_model]
+
+        attention_mask = (past_exercises == 0)
+        key_padding_mask = attention_mask
+
+        query = self.exercise_embedding(current_exercises).unsqueeze(1)
+        query = query.permute(1, 0, 2)
+        key = value = past_interactions_embeddings.permute(1, 0, 2)
+
+        attention_output, _ = self.multi_head_attention(query, key, value, key_padding_mask=key_padding_mask)
+        attention_output = attention_output.permute(1, 0, 2)
         out1 = self.layer_norm1(attention_output + query.permute(1, 0, 2))
         ffn_output = self.ffn(out1)
         out2 = self.layer_norm2(ffn_output + out1)
         output = self.output_layer(out2).squeeze(-1)
-        return output
+        return output.squeeze(-1)
 
-    def fit(self, train_df, val_df=None, num_epochs=5, early_stopping=True, patience=1):
+
+    def fit(self, train_df, val_df=None, num_epochs=5, early_stopping=True, patience=1, clip_value=1.0):
         self.preprocess(train_df)
         self.optimizer = optim.Adam(self.parameters(), lr=1e-3)
         self.scheduler = optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.96)
@@ -141,35 +167,62 @@ class SAKTModel(nn.Module):
         best_val_auc = 0.0
         epochs_since_improvement = 0
 
+        # Add model graph to TensorBoard
+        sample_batch = next(iter(self._data_generator(train_df)))
+        self.writer.add_graph(self, sample_batch[:3])
+
+        global_batch_idx = 0  # Global batch counter to avoid using len(train_data)
+
         for epoch in range(num_epochs):
             self.train()
             train_losses, all_labels, all_predictions = [], [], []
 
             train_data = self._data_generator(train_df)
-            for batch in tqdm(train_data, desc=f"Epoch {epoch+1}/{num_epochs}", ncols=100):
+            for batch_idx, batch in enumerate(tqdm(train_data, desc=f"Epoch {epoch+1}/{num_epochs}", ncols=100)):
                 past_exercises, past_responses, current_exercises, y = batch
                 y = y.float()
                 self.optimizer.zero_grad()
-                
+
                 predictions = self(past_exercises, past_responses, current_exercises)
-                # if torch.isnan(predictions).any():
-                #     print("NaN detected in predictions!")
-                #     continue
-                # print(f"Predictions: {predictions}")  # Check values are in [0, 1]
-                loss = self.loss_fn(predictions.squeeze(-1), y)
+                loss = self.loss_fn(predictions, y)
                 loss.backward()
+
+                torch.nn.utils.clip_grad_norm_(self.parameters(), clip_value)
                 self.optimizer.step()
 
                 train_losses.append(loss.item())
-                all_labels.extend(y.cpu().numpy())
-                all_predictions.extend(predictions.detach().cpu().numpy())
+                all_labels.extend(y.cpu().numpy().flatten())
+                all_predictions.extend(predictions.detach().cpu().numpy().flatten())
 
-            epoch_auc = roc_auc_score(all_labels, all_predictions)
+                # Log batch-level training loss with global batch counter
+                self.writer.add_scalar('Training/Loss_batch', loss.item(), global_batch_idx)
+                global_batch_idx += 1  # Increment the global batch counter
+
+            # Convert all_labels and all_predictions to NumPy arrays
+            all_labels = np.array(all_labels).flatten()
+            all_predictions = np.array(all_predictions).flatten()
+
+            # Filter out NaNs from predictions and corresponding labels
+            valid_indices = ~np.isnan(all_predictions)
+            all_labels = all_labels[valid_indices]
+            all_predictions = all_predictions[valid_indices]
+
+            if len(all_labels) == 0 or len(all_predictions) == 0:
+                print("No valid data for training evaluation.")
+                epoch_auc = 0.0
+            else:
+                # Calculate AUC for the epoch
+                epoch_auc = roc_auc_score(all_labels, all_predictions)
+            self.writer.add_scalar('Training/Loss_epoch', np.mean(train_losses), epoch)
+            self.writer.add_scalar('Training/AUC_epoch', epoch_auc, epoch)
             print(f"Epoch {epoch + 1} - Loss: {np.mean(train_losses):.4f}, AUC: {epoch_auc:.4f}")
 
             # Validation and early stopping
             if val_df is not None:
-                val_auc, val_loss = self.eval(val_df)
+                val_auc, val_loss = self.evaluate(val_df)
+                self.writer.add_scalar('Validation/Loss_epoch', val_loss, epoch)
+                self.writer.add_scalar('Validation/AUC_epoch', val_auc, epoch)
+
                 if val_auc > best_val_auc:
                     best_val_auc = val_auc
                     epochs_since_improvement = 0
@@ -182,20 +235,40 @@ class SAKTModel(nn.Module):
 
             self.scheduler.step()
 
-    def eval(self, val_df):
-        self.eval()
+        self.writer.close()
+
+    def evaluate(self, val_df):
+        super().eval()  # Set model to evaluation mode
         val_losses, all_labels, all_predictions = [], [], []
         val_data = self._data_generator(val_df)
 
         with torch.no_grad():
-            for batch in val_data:
+            for batch_idx, batch in enumerate(val_data):
                 past_exercises, past_responses, current_exercises, y = batch
+                y = y.float()
                 predictions = self(past_exercises, past_responses, current_exercises)
                 loss = self.loss_fn(predictions, y)
                 val_losses.append(loss.item())
-                all_labels.extend(y.cpu().numpy())
-                all_predictions.extend(predictions.cpu().numpy())
+                all_labels.extend(y.cpu().numpy().flatten())
+                all_predictions.extend(predictions.cpu().numpy().flatten())
 
-        val_auc = roc_auc_score(all_labels, all_predictions)
-        val_loss = np.mean(val_losses)
+                # Log batch-level validation loss
+                self.writer.add_scalar('Validation/Loss_batch', loss.item(), batch_idx)
+
+        # Convert to NumPy arrays and flatten
+        all_labels = np.array(all_labels).flatten()
+        all_predictions = np.array(all_predictions).flatten()
+
+        # Filter NaNs from predictions and labels
+        valid_indices = ~np.isnan(all_predictions)
+        all_labels = all_labels[valid_indices]
+        all_predictions = all_predictions[valid_indices]
+
+        if len(all_labels) == 0 or len(all_predictions) == 0:
+            print("No valid data for evaluation.")
+            val_auc = 0.0
+            val_loss = np.nan
+        else:
+            val_auc = roc_auc_score(all_labels, all_predictions)
+            val_loss = np.mean(val_losses)
         return val_auc, val_loss
