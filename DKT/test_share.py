@@ -1,24 +1,16 @@
 import torch
 import torch.multiprocessing as mp
-import os
 
-def worker_process(rank, tensor_size):
-    # Set the multiprocessing start method to 'spawn'
-    # This should be done in the main section, but included here for clarity
-    # mp.set_start_method('spawn', force=True)
-
-    # Ensure each process uses the same GPU (e.g., GPU 0)
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+def worker_process(rank, tensor_size, device):
     # Create a tensor and send it to the GPU
-    tensor = torch.ones(tensor_size) * rank  # Differentiate tensors by rank
+    tensor = torch.ones(tensor_size) * rank
     tensor = tensor.to(device)
 
     # Perform some computations
     result = tensor * 2
 
     # Print the result
-    print(f"Process {rank}: Computation result on device {device}: {result}")
+    print(f"Process {rank}: Computation result on device {device}")
 
 def main():
     # Set the multiprocessing start method to 'spawn'
@@ -27,10 +19,16 @@ def main():
     # Define the size of the tensor
     tensor_size = (1000, 1000)
 
+    # Select the device
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+    # Create a shared memory tensor (optional)
+    # shared_tensor = torch.zeros(tensor_size).share_memory_()
+
     # Create two processes
     processes = []
     for rank in range(2):
-        p = mp.Process(target=worker_process, args=(rank, tensor_size))
+        p = mp.Process(target=worker_process, args=(rank, tensor_size, device))
         p.start()
         processes.append(p)
 
