@@ -36,7 +36,7 @@ def objective(trial):
     d_model = trial.suggest_int('d_model', 64, 512, step = 32)
     num_heads = trial.suggest_int('num_heads', 2, 32, step = 2)
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
-    num_epochs = trial.suggest_int('num_epochs', 3, 50)
+    num_epochs = trial.suggest_int('num_epochs', 3, 30)
     init_learning_rate = trial.suggest_float('init_learning_rate', 1e-6, 1e-2, log=True)
     learning_decay_rate = trial.suggest_float('learning_decay_rate', 0.7, 0.99)
 
