@@ -53,8 +53,8 @@ y_dict = {
 }
 #%%
 for key, val in y_dict.items():
-    high_interact_users = val.groupby(by=['user_xid']).filter(lambda x: len(x) > 5).user_xid.unique()
-    high_interact_df = val[val['user_xid'].isin(high_interact_users)].copy()
+    high_interact_als = val.groupby(by=['assignment_log_id']).filter(lambda x: len(x) > 4).assignment_log_id.unique()
+    high_interact_df = val[val['user_xid'].isin(high_interact_als)].copy()
     y_dict[key] = val
 #%% md
 # Summary Statistics for each academic year
@@ -65,7 +65,7 @@ for key, val in y_dict.items():
     print(len(val),' unique problem logs')
     print(len(val.user_xid.unique()),' unique users')
     print(len(val.skill_id.unique()),' unique skills')
-    print(val.groupby(by=['user_xid']).size().mean(), ' average number of problems per user')
+    print(val.groupby(by=['assignment_log_id']).size().mean(), ' average number of problems per assignment log')
     print('Avg Correctness Value: ', val.discrete_score.mean())
 #%%
 for key, val in y_dict.items():
