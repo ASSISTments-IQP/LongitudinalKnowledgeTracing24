@@ -8,7 +8,7 @@ import os
 def read_year(year):
     res = []
 
-    with pd.read_csv("all_years_problem_logs.csv",chunksize=10**6) as read:
+    with pd.read_csv("./Data/all_years_problem_logs.csv",chunksize=10**6) as read:
         for chunk in tqdm(read):
             res.append(chunk[chunk['academic_year'] == year])
             
@@ -52,7 +52,10 @@ y_dict = {
     '23-24': ay23_24
 }
 #%%
-all_years = pd.concat([ay19_20, ay20_21, ay21_22, ay22_23, ay23_24], ignore_index=True)
+for key, val in y_dict.items():
+    high_interact_users = val.groupby(by=['user_xid']).filter(lambda x: len(x) > 5).user_xid.unique()
+    high_interact_df = val[val['user_xid'].isin(high_interact_users)].copy()
+    y_dict[key] = val
 #%% md
 # Summary Statistics for each academic year
 #%%
@@ -64,3 +67,17 @@ for key, val in y_dict.items():
     print(len(val.skill_id.unique()),' unique skills')
     print(val.groupby(by=['user_xid']).size().mean(), ' average number of problems per user')
     print('Avg Correctness Value: ', val.discrete_score.mean())
+#%%
+for key, val in y_dict.items():
+    assignment_log_ids = pd.DataFrame(val.assignment_log_id.unique())
+    for i in tqdm(range(10)):
+        sample_log_ids = assignment_log_ids.sample(n=50000).to_numpy().reshape(-1)
+        sample = val[val['assignment_log_id'].isin(sample_log_ids)]
+        sample.to_csv(f'./Data/samples/{key}/sample{i+1}.csv', index=False)
+#%%
+all_years = pd.concat(y_dict.values())
+#%%
+al_ids = pd.DataFrame(all_years.assignment_log_id.unique())
+sampled_ids = al_ids.sample(n=100000).to_numpy().reshape(-1)
+sample = all_years[all_years['assignment_log_id'].isin(sampled_ids)]
+sample.to_csv('./Data/samples/validation_sample.csv', index=False)
