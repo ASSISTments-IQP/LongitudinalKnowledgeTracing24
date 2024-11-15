@@ -43,8 +43,8 @@ if __name__ == '__main__':
     fold_dict = {}
     j = 0
     for i in range(1, 11, 2):
-        s1 = pd.read_csv(f'./Data/samples/{train_year}/sample{i}.csv')
-        s2 = pd.read_csv(f'./Data/samples/{train_year}/sample{i + 1}.csv')
+        s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
+        s2 = pd.read_csv(f'../Data/samples/{train_year}/sample{i + 1}.csv')
 
         fold_dict[j] = pd.concat([s1, s2], ignore_index=True)
         j += 1

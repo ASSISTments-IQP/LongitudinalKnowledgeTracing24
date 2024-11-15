@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     train_dict = {}
     for i in range(1, 11):
-        s1 = pd.read_csv(f'./Data/samples/{train_year}/sample{i}.csv')
+        s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
         train_dict[i] = s1
 
     test_years = year_list[year_list.index(train_year):]
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     for y in tqdm(test_years):
         y_dict = {}
         for i in range(1,11):
-            s1 = pd.read_csv(f'./Data/samples/{y}/sample{i}.csv')
+            s1 = pd.read_csv(f'../Data/samples/{y}/sample{i}.csv')
             y_dict[i] = s1
 
         test_dict[y] = y_dict
