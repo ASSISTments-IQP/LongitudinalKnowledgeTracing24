@@ -129,7 +129,7 @@ class DKT:
             self.idx_to_vocab = {idx: token for token, idx in self.vocab_to_idx.items()}
         return data
 
-    def train(self, train_data, num_epochs=5):
+    def fit(self, train_data, num_epochs=5):
         train_data = self.preprocess(train_data, fitting=True)
         dataset = DKTDataset(train_data, self.vocab_to_idx, self.num_steps)
         if len(dataset) == 0:
