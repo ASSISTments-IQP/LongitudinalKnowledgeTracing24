@@ -7,4 +7,4 @@
 #SBATCH -t 24:00:00
 module load python
 source ~/myenvs/lkt-env/bin/activate
-python3 ../run_cy_one_year.py MODEL_TYPE YEAR SAMPLE_NUM
+python3 ../run_cy_one_year.py MODEL_TYPE YEAR

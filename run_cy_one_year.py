@@ -74,3 +74,4 @@ if __name__ == '__main__':
     with open(f'./cross_year_results_{sys.argv[1]}.json','w') as fout:
         json.dump(res,fout)
         fout.close()
+d
