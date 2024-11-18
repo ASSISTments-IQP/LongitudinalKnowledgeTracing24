@@ -4,7 +4,7 @@ if __name__ == '__main__':
 
 	for m in models:
 		for y in years:
-			if m == 'DKT' or m == 'SAKT':
+			if m == 'DKT-E' or m == 'DKT-KC' or m == 'SAKT-E' or m == 'SAKT-KC':
 				model_depth = 'deep'
 			else:
 				model_depth = 'shallow'
