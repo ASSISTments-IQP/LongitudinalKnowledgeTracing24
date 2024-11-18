@@ -1,3 +1,5 @@
+from numpy.f2py.cfuncs import needs
+
 from PFA.PFA_Model import PFA
 from bkt.BKT_Model import BKTModel
 from sakt.SAKT_model import SAKTModel
@@ -6,22 +8,36 @@ from multiprocessing import Pool
 from tqdm import tqdm
 import pandas as pd
 import sys, json
-model_list = ['BKT','PFA','DKT','SAKT']
+model_list = ['BKT','PFA','DKT-E','DKT-KC','SAKT-E','SAKT-KC']
+
 
 def run_cv_one_fold(data, test_fold_num, model_type):
     test = data.pop(test_fold_num)
     train = pd.concat(data.values())
+    needs_num_epochs = True
 
     if model_type == 'BKT':
+        needs_num_epochs = False
         model = BKTModel()
     if model_type == 'PFA':
+        needs_num_epochs = False
         model = PFA()
-    if model_type == 'DKT':
-        model = DKT() # UPDATE HYPERPARAMS LATER
-    if model_type == 'SAKT':
-        model = SAKTModel() # UPDATE HYPERPARAMS LATER
+    if model_type == 'DKT-E':
+        num_epochs = 3
+        model = DKT(16,50,128,0.33,1e-4,test_fold_num,'old_problem_id')  # UPDATE HYPERPARAMS LATER
+    if model_type == 'DKT-KC':
+        num_epochs = 3
+        model = DKT(16,50,128,0.33,1e-4,test_fold_num,'skill_id')
+    if model_type == 'SAKT-E':
+        model = SAKTModel()  # UPDATE HYPERPARAMS LATER
+    if model_type == 'SAKT-KC':
+        model = SAKTModel
 
-    model.fit(train)
+    if needs_num_epochs:
+        model.fit(train, num_epochs)
+    else:
+        model.fit(train)
+
     return model.eval(test), test_fold_num
 
 

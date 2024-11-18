@@ -1,6 +1,6 @@
 if __name__ == '__main__':
 	years = ['19-20','20-21','21-22','22-23','23-24']
-	models = ['DKT', 'SAKT', 'BKT', 'PFA']
+	models = ['DKT-E', 'DKT-KC', 'SAKT-E', 'SAKT-KC', 'BKT', 'PFA']
 
 	for m in models:
 		for y in years:

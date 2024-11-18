@@ -27,8 +27,9 @@ class DKTModel(nn.Module):
         return output
 
 class DKTDataset(Dataset):
-    def __init__(self, data, vocab_to_idx, max_seq_len):
+    def __init__(self, data, vocab_to_idx, max_seq_len, feature_col):
         self.data = data
+        self.feature_col = feature_col
         self.vocab_to_idx = vocab_to_idx
         self.max_seq_len = max_seq_len
         self.samples = []
@@ -38,11 +39,12 @@ class DKTDataset(Dataset):
         user_groups = self.data.groupby('user_xid')
         for uid, u_data in user_groups:
             u_data = u_data.sort_values('start_time')
-            u_data['skill_id'] = u_data['skill_id'].astype(str)
-            u_data['skill_id_x_corr'] = u_data['skill_id']
-            u_data.loc[u_data['discrete_score'] == 0, 'skill_id_x_corr'] += '+0'
-            u_data.loc[u_data['discrete_score'] == 1, 'skill_id_x_corr'] += '+1'
-            encoded_seq = [self.vocab_to_idx.get(s, self.vocab_to_idx['<UNK>']) for s in u_data['skill_id_x_corr']]
+            u_data[self.feature_col] = u_data[self.feature_col].astype(str)
+            x_cor_col_name = f'{self.feature_col}_x_corr'
+            u_data[x_cor_col_name] = u_data[self.feature_col]
+            u_data.loc[u_data['discrete_score'] == 0, x_cor_col_name] += '+0'
+            u_data.loc[u_data['discrete_score'] == 1, x_cor_col_name] += '+1'
+            encoded_seq = [self.vocab_to_idx.get(s, self.vocab_to_idx['<UNK>']) for s in u_data[x_cor_col_name]]
             correct_seq = u_data['discrete_score'].to_numpy()
 
             seq_len = len(encoded_seq)
@@ -70,6 +72,7 @@ class DKTDataset(Dataset):
         input_seq, label = self.samples[idx]
         return torch.tensor(input_seq, dtype=torch.long), torch.tensor(label, dtype=torch.float32)
 
+
 def compute_auc(y_true, y_pred):
     y_true_np = y_true.cpu().numpy()
     y_pred_np = y_pred.cpu().numpy()
@@ -79,15 +82,18 @@ def compute_auc(y_true, y_pred):
         auc = 0.0
     return auc
 
+
 def compute_accuracy(y_true, y_pred):
     y_pred_labels = (y_pred.cpu().numpy() >= 0.5).astype(int)
     y_true_labels = y_true.cpu().numpy().astype(int)
     acc = accuracy_score(y_true_labels, y_pred_labels)
     return acc
 
+
 class DKT:
-    def __init__(self, batch_size=64, num_steps=50, hidden_dim_size=124, dropout_rate=0.2, learning_rate=1e-3, verbose=True, gpu_num=1):
+    def __init__(self, batch_size=64, num_steps=50, hidden_dim_size=124, dropout_rate=0.2, learning_rate=1e-3, verbose=True, gpu_num=1, feature_col='skill_id'):
         self.model = None
+        self.feature_col = feature_col
         self.vocab = []
         self.vocab_size = 0
         self.num_steps = num_steps
@@ -105,18 +111,14 @@ class DKT:
         data = data.copy()
         data['start_time'] = pd.to_datetime(
             data['start_time'],
-            infer_datetime_format=True,
             utc=True,
-            errors='coerce'  # Handle parsing errors
+            errors='coerce'
         )
-        data = data[['user_xid', 'skill_id', 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
-        data = data.fillna({'skill_id': 'unknown_skill', 'discrete_score': 0})
-        data['skill_id'] = data['skill_id'].astype(str)
-        data['discrete_score'] = pd.to_numeric(data['discrete_score'], errors='coerce').fillna(0).astype(int)
-        data['discrete_score'] = data['discrete_score'].clip(lower=0, upper=1)  # Ensure values are 0 or 1
+        data = data[['user_xid', self.feature_col, 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
+        data[self.feature_col] = data[self.feature_col].astype(str)
 
         if fitting:
-            un = data['skill_id'].unique()
+            un = data[self.feature_col].unique()
             zer = un + '+0'
             on = un + '+1'
 
@@ -125,13 +127,13 @@ class DKT:
             self.embedding_dim = max(50, math.ceil(math.log(self.vocab_size)))
             self.vocab_to_idx = {token: idx + 2 for idx, token in enumerate(self.vocab)}
             self.vocab_to_idx['<PAD>'] = 0
-            self.vocab_to_idx['<UNK>'] = 1  # Corrected key
+            self.vocab_to_idx['<UNK>'] = 1
             self.idx_to_vocab = {idx: token for token, idx in self.vocab_to_idx.items()}
         return data
 
     def fit(self, train_data, num_epochs=5):
         train_data = self.preprocess(train_data, fitting=True)
-        dataset = DKTDataset(train_data, self.vocab_to_idx, self.num_steps)
+        dataset = DKTDataset(train_data, self.vocab_to_idx, self.num_steps, self.feature_col)
         if len(dataset) == 0:
             print("No data to train on. Exiting training.")
             return

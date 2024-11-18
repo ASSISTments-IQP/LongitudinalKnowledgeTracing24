@@ -15,16 +15,29 @@ def run_one_sample(model_type, train_samples, test_samples, sample_num):
     for year, samps in test_samples.items():
         tests[year] = (samps[sample_num])
 
-    if model_type == 'PFA':
-        model = PFA(verbose=0)
-    if model_type == 'SAKT':
-        model = SAKTModel()
-    if model_type == 'BKT':
-        model = BKTModel(verbose=0)
-    if model_type == 'DKT':
-        model = DKT(verbose=0)
+    needs_num_epochs = True
 
-    model.fit(train)
+    if model_type == 'BKT':
+        needs_num_epochs = False
+        model = BKTModel()
+    if model_type == 'PFA':
+        needs_num_epochs = False
+        model = PFA()
+    if model_type == 'DKT-E':
+        num_epochs = 3
+        model = DKT(16, 50, 128, 0.33, 1e-4)  # UPDATE HYPERPARAMS LATER
+    if model_type == 'DKT-KC':
+        num_epochs = 3
+        model = DKT(16, 50, 128, 0.33, 1e-4)
+    if model_type == 'SAKT-E':
+        model = SAKTModel()  # UPDATE HYPERPARAMS LATER
+    if model_type == 'SAKT-KC':
+        model = SAKTModel
+
+    if needs_num_epochs:
+        model.fit(train, num_epochs)
+    else:
+        model.fit(train)
 
     res = {}
     for year, samp in tests.items():
