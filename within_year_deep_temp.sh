@@ -8,5 +8,5 @@
 #SBATCH --gres=gpu:5
 module load python
 module load cuda
-source ~/myenvs/lkt-env/bin/activate
+source ~/myenvs/cuda-torch/bin/activate
 python3 ../run_wy_one_year.py MODEL_TYPE YEAR
