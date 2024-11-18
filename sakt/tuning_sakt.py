@@ -46,6 +46,8 @@ def objective(trial):
     with Pool(4) as p:
         for l in p.starmap(run_one_fold, args):
             res.append(l)
+        p.join()
+
 
     return np.mean(res)
 
