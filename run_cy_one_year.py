@@ -6,7 +6,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 import pandas as pd
 import sys, json
-model_list = ['BKT','PFA','DKT','SAKT']
+model_list = ['BKT','PFA','DKT-E','DKT-KC','SAKT-E','SAKT-KC']
 
 
 def run_one_sample(model_type, train_samples, test_samples, sample_num):
