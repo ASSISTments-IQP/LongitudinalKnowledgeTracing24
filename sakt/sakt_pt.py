@@ -9,10 +9,11 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
 
 class SAKTDataset(Dataset):
-    def __init__(self, df: pd.DataFrame, exercise_map: dict, num_steps: int):
+    def __init__(self, df: pd.DataFrame, exercise_map: dict, num_steps: int, feature_col = 'skill_id'):
+        self.feature_col = feature_col
         self.df = df.copy()
         self.df['start_time'] = pd.to_datetime(self.df['start_time'], utc=True)
-        self.df = self.df[['user_xid', 'old_problem_id', 'discrete_score', 'start_time']].sort_values(
+        self.df = self.df[['user_xid', f'{self.feature_col}', 'discrete_score', 'start_time']].sort_values(
             by=['user_xid', 'start_time'])
         self.exercise_map = exercise_map
         self.num_steps = num_steps
@@ -25,7 +26,7 @@ class SAKTDataset(Dataset):
 
         for user_xid in user_xids:
             user_data = self.df[self.df['user_xid'] == user_xid]
-            exercise_seq = [self.exercise_map.get(id, 0) for id in user_data['old_problem_id']]
+            exercise_seq = [self.exercise_map.get(id, 0) for id in user_data[f'{self.feature_col}']]
             response_seq = user_data['discrete_score'].astype(int).tolist()
 
             for idx in range(1, len(exercise_seq)):
@@ -96,15 +97,17 @@ class SAKTModel(nn.Module):
         return self.loss_fn(predictions, targets)
 
 
-def preprocess_data(df: pd.DataFrame):
+def preprocess_data(df: pd.DataFrame, feature_col='skill_id'):
     df = df.dropna()
-    unique_problems = df['old_problem_id'].unique()
+    if feature_col == 'problem_id':
+        unique_problems = df['old_problem_id'].unique()
+        exercise_map = {problem: idx for idx, problem in enumerate(unique_problems, start=1)}
+        return exercise_map, len(exercise_map)
+    else:
+        unique_skills = df['skill_id'].unique()
+        exercise_map = {skill: idx for idx, skill in enumerate(unique_skills, start=1)}
+        return exercise_map, len(exercise_map)
 
-    exercise_map = {problem: idx for idx, problem in enumerate(unique_problems, start=1)}
-    return exercise_map, len(exercise_map)
-
-
-import numpy as np
 
 def train(model, train_loader, val_loader=None, num_epochs=5, clip_value=1.0, lr=1e-3, patience=1):
     optimizer = optim.Adam(model.parameters(), lr=lr)
