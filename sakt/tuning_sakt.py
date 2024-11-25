@@ -2,10 +2,10 @@ import optuna
 from SAKT_model import SAKTModel
 import pandas as pd
 import numpy as np
-from multiprocessing import Pool
+from multiprocessing import Process, Queue
 
 
-def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr):
+def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr, res_queue):
     test_data = data.pop(test_fold)
     train_data = pd.concat(data)
 
@@ -17,7 +17,7 @@ def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr):
 
     mod = SAKTModel(ns, bs, dm, nh, dr, ilr, ldr, gpu_num=test_fold)
     mod.fit(train_data, num_epochs=ne)
-    return mod.eval(test_data)
+    res_queue.put(mod.eval(test_data))
 
 
 def objective(trial):
@@ -41,13 +41,19 @@ def objective(trial):
     learning_decay_rate = trial.suggest_float('learning_decay_rate', 0.7, 0.99)
 
     print(batch_size)
-    res = []
-    args = zip([data] * 4, range(4), [num_steps] * 4, [batch_size] * 4, [d_model] * 4, [num_heads] * 4, [dropout_rate] * 4, [num_epochs] * 4, [init_learning_rate] * 4, [learning_decay_rate] * 4)
-    with Pool(4) as p:
-        for l in p.starmap(run_one_fold, args):
-            res.append(l)
-        p.join()
+    res_queue = Queue()
+    procs = []
+    for i in range(4):
+        p = Process(target=run_one_fold, args=(data.copy(), num_steps, i, batch_size, d_model, num_heads, dropout_rate, num_epochs, init_learning_rate, learning_decay_rate, res_queue,))
+        p.start()
+        procs.append(p)
 
+    for i in range(4):
+        procs[i].join()
+
+    res = []
+    for i in range(4):
+        res.append(res_queue.get())
 
     return np.mean(res)
 
