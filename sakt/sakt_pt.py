@@ -53,12 +53,15 @@ class SAKTDataset(Dataset):
         )
 
 class SAKTModel(nn.Module):
-    def __init__(self, num_steps=50, d_model=128, num_heads=8, dropout_rate=0.2, feature_col='skill_id'):
+    def __init__(self, num_steps=50, batch_size = 32, d_model=128, num_heads=8, dropout_rate=0.2, init_learning_rate=1e-3, learning_decay_rate=0.98, feature_col='skill_id'):
         super(SAKTModel, self).__init__()
         self.num_steps = num_steps
+        self.batch_size = batch_size
         self.d_model = d_model
         self.num_heads = num_heads
         self.dropout_rate = dropout_rate
+        self.init_learning_rate = init_learning_rate
+        self.learning_decay_rate = learning_decay_rate
         self.feature_col = feature_col
 
         # Placeholders for embeddings; will be initialized during fit
@@ -154,11 +157,11 @@ class SAKTModel(nn.Module):
         train_size = total_samples - val_size
         train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
 
-        optimizer = optim.Adam(self.parameters(), lr=lr)
-        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.96)
+        optimizer = optim.Adam(self.parameters(), lr=self.init_learning_rate)
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=self.learning_decay_rate)
         best_val_auc = 0.0
         epochs_without_improvement = 0
 
