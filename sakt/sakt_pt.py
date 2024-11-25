@@ -81,7 +81,7 @@ class SAKTModel(nn.Module):
         position_ids = torch.arange(seq_len, device=past_exercises.device).unsqueeze(0)
         position_emb = self.position_embedding(position_ids)
         interactions_emb += position_emb
-        attention_mask = (past_exercises == 0)
+        attention_mask = (past_exercises == float('-inf'))
         query = self.exercise_embedding(current_exercises).unsqueeze(1).permute(1, 0, 2)
         key = value = interactions_emb.permute(1, 0, 2)
         attn_out, _ = self.attention(query, key, value, key_padding_mask=attention_mask)
@@ -122,16 +122,17 @@ def train(model, train_loader, val_loader=None, num_epochs=5, clip_value=1.0, lr
             preds = preds.squeeze(-1)
             loss = model.compute_loss(preds, targets.cuda())
             loss.backward()
+
             torch.nn.utils.clip_grad_norm_(model.parameters(), clip_value)
             optimizer.step()
+
             train_losses.append(loss.item())
             all_labels.extend(targets.cpu().numpy())
             all_preds.extend(preds.detach().cpu().numpy())
+
         all_labels = np.array(all_labels)
         all_preds = np.array(all_preds)
-        valid_indices = ~np.isnan(all_preds)
-        all_labels = all_labels[valid_indices]
-        all_preds = all_preds[valid_indices]
+
 
         if len(all_labels) > 0 and len(all_preds) > 0:
             epoch_auc = roc_auc_score(all_labels, all_preds)
@@ -168,16 +169,15 @@ def evaluate(model, val_loader):
             val_losses.append(loss.item())
             all_labels.extend(targets.cpu().numpy())
             all_preds.extend(preds.cpu().numpy())
+
     all_labels = np.array(all_labels)
     all_preds = np.array(all_preds)
-    valid_indices = ~np.isnan(all_preds)
-    all_labels = all_labels[valid_indices]
-    all_preds = all_preds[valid_indices]
+
     if len(all_labels) > 0 and len(all_preds) > 0:
         val_auc = roc_auc_score(all_labels, all_preds)
     else:
         val_auc = 0.0
         print("Warning: No valid predictions for AUC calculation.")
-    
+
     val_loss = np.mean(val_losses)
     return val_auc, val_loss
