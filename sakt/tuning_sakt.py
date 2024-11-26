@@ -19,7 +19,7 @@ def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr, res_queue):
 
     mod = SAKTModel(ns, bs, dm, nh, dr, ilr, ldr, feature_col='old_problem_id', gpu_num=test_fold)
     mod.fit(train_data, num_epochs=ne)
-    res_queue.put(mod.eval(test_data)['auc'])
+    res_queue.put(mod.evaluate(test_data)[0])
 
 
 def objective(trial):
