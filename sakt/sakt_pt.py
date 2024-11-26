@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 import numpy as np
+import os
 from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
@@ -53,7 +54,7 @@ class SAKTDataset(Dataset):
         )
 
 class SAKTModel(nn.Module):
-    def __init__(self, num_steps=50, batch_size = 32, d_model=128, num_heads=8, dropout_rate=0.2, init_learning_rate=1e-3, learning_decay_rate=0.98, feature_col='skill_id'):
+    def __init__(self, num_steps=50, batch_size = 32, d_model=128, num_heads=8, dropout_rate=0.2, init_learning_rate=1e-3, learning_decay_rate=0.98, feature_col='skill_id', gpu_num=0):
         super(SAKTModel, self).__init__()
         self.num_steps = num_steps
         self.batch_size = batch_size
@@ -83,6 +84,9 @@ class SAKTModel(nn.Module):
         # These attributes will be set during training
         self.exercise_map = None
         self.num_exercises = None
+
+        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def preprocess_data(self, df: pd.DataFrame):
         """
@@ -141,14 +145,13 @@ class SAKTModel(nn.Module):
             patience (int): Number of epochs to wait for improvement before early stopping.
             validation_split (float): Proportion of data to use for validation.
         """
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.to(device)
+        self.to(self.device)
 
         df, exercise_map, num_exercises = self.preprocess_data(df)
         self.exercise_map = exercise_map
         self.num_exercises = num_exercises
 
-        self.exercise_embedding = nn.Embedding(self.num_exercises + 1, self.d_model, padding_idx=0).to(device)
+        self.exercise_embedding = nn.Embedding(self.num_exercises + 1, self.d_model, padding_idx=0).to(self.device)
 
         dataset = SAKTDataset(df, self.exercise_map, self.num_steps, feature_col=self.feature_col)
 
@@ -170,10 +173,10 @@ class SAKTModel(nn.Module):
             train_losses, all_labels, all_preds = [], [], []
 
             for past_exercises, past_responses, current_exercises, targets in tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}"):
-                past_exercises = past_exercises.to(device)
-                past_responses = past_responses.to(device)
-                current_exercises = current_exercises.to(device)
-                targets = targets.to(device)
+                past_exercises = past_exercises.to(self.device)
+                past_responses = past_responses.to(self.device)
+                current_exercises = current_exercises.to(self.device)
+                targets = targets.to(self.device)
 
                 optimizer.zero_grad()
                 preds = self(past_exercises, past_responses, current_exercises)
@@ -191,7 +194,7 @@ class SAKTModel(nn.Module):
             print(f"Epoch {epoch+1}/{num_epochs}, Training loss: {train_loss:.4f}, AUC: {train_auc:.4f}")
 
             # Validation
-            val_auc, val_loss = self.evaluate_internal(val_loader, device)
+            val_auc, val_loss = self.evaluate_internal(val_loader, self.device)
             print(f"Validation loss: {val_loss:.4f}, AUC: {val_auc:.4f}")
 
             if val_auc > best_val_auc:
@@ -208,10 +211,9 @@ class SAKTModel(nn.Module):
 
     def evaluate(self, df_eval: pd.DataFrame, batch_size=64):
         """
-        pretty bog standard eval, uses BCEWithLogits and creates a DS and DL using the provided eval df. 
+        pretty bog standard eval, uses BCEWithLogits and creates a DS and DL using the provided eval df.
         """
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.to(device)
+        self.to(self.device)
         self.eval()
 
         df_eval = df_eval.dropna()
@@ -224,10 +226,10 @@ class SAKTModel(nn.Module):
 
         with torch.no_grad():
             for past_exercises, past_responses, current_exercises, targets in tqdm(eval_loader, desc="Evaluating"):
-                past_exercises = past_exercises.to(device)
-                past_responses = past_responses.to(device)
-                current_exercises = current_exercises.to(device)
-                targets = targets.to(device)
+                past_exercises = past_exercises.to(self.device)
+                past_responses = past_responses.to(self.device)
+                current_exercises = current_exercises.to(self.device)
+                targets = targets.to(self.device)
 
                 preds = self(past_exercises, past_responses, current_exercises)
                 loss = self.compute_loss(preds, targets)
@@ -241,9 +243,9 @@ class SAKTModel(nn.Module):
         print(f"Evaluation loss: {val_loss:.4f}, AUC: {val_auc:.4f}")
         return val_auc, val_loss
 
-    def evaluate_internal(self, val_loader, device):
+    def evaluate_internal(self, val_loader):
         """
-       basically made this to not run the other method during train. does the same stuff without processing the df to 
+       basically made this to not run the other method during train. does the same stuff without processing the df to
        make a dataloader and dataset.
         """
         self.eval()
@@ -251,10 +253,10 @@ class SAKTModel(nn.Module):
 
         with torch.no_grad():
             for past_exercises, past_responses, current_exercises, targets in val_loader:
-                past_exercises = past_exercises.to(device)
-                past_responses = past_responses.to(device)
-                current_exercises = current_exercises.to(device)
-                targets = targets.to(device)
+                past_exercises = past_exercises.to(self.device)
+                past_responses = past_responses.to(self.device)
+                current_exercises = current_exercises.to(self.device)
+                targets = targets.to(self.device)
 
                 preds = self(past_exercises, past_responses, current_exercises)
                 loss = self.compute_loss(preds, targets)

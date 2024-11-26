@@ -1,6 +1,6 @@
 from PFA.PFA_Model import PFA
 from bkt.BKT_Model import BKTModel
-from sakt.SAKT_model import SAKTModel
+from sakt.sakt_pt import SAKTModel
 from DKT.DKT_pt import DKT
 from multiprocessing import Pool
 from tqdm import tqdm
@@ -22,23 +22,21 @@ def run_cv_one_fold(data, test_fold_num, model_type):
         model = PFA()
     if model_type == 'DKT-E':
         num_epochs = 3
-        model = DKT(16,50,128,0.33,1e-4,test_fold_num,'old_problem_id')  # UPDATE HYPERPARAMS LATER
+        model = DKT(16,50,128,0.33,1e-4,gpu_num=test_fold_num,feature_col='old_problem_id')  # UPDATE HYPERPARAMS LATER
     if model_type == 'DKT-KC':
         num_epochs = 3
-        model = DKT(16,50,128,0.33,1e-4,test_fold_num,'skill_id')
+        model = DKT(16,50,128,0.33,1e-4,gpu_num=test_fold_num,feature_col='skill_id')
     if model_type == 'SAKT-E':
-        pass
-       model = SAKTModel()  # UPDATE HYPERPARAMS LATER
+        model = SAKTModel()  # UPDATE HYPERPARAMS LATER
     if model_type == 'SAKT-KC':
-       model = SAKTModel()
-        pass
+        model = SAKTModel()
  
     if needs_num_epochs:
         model.fit(train, num_epochs)
     else:
         model.fit(train)
 
-    return model.eval(test), test_fold_num
+    return model.evaluate(test), test_fold_num
 
 
 if __name__ == '__main__':

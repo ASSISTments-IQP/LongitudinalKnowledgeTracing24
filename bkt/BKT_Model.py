@@ -102,7 +102,7 @@ class BKTModel:
         return auc
 
 
-    def eval(self, data):
+    def evaluate(self, data):
         if self.verbose:
             print("Beginning data preprocessing.")
         skill_dict = self.preprocess(data)

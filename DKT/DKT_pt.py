@@ -190,7 +190,7 @@ class DKT:
 
             print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {avg_loss:.4f}, AUC: {auc:.4f}, Accuracy: {acc:.4f}")
 
-    def eval(self, val_data):
+    def evaluate(self, val_data):
         if self.model is None:
             print('Model has not been trained yet')
             return

@@ -1,5 +1,4 @@
 import optuna
-from SAKT_model import SAKTModel
 import pandas as pd
 import numpy as np
 import multiprocessing as mp
@@ -7,6 +6,7 @@ from multiprocessing import Process, Queue
 
 
 def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr, res_queue):
+    from sakt_pt import SAKTModel
     print(test_fold)
     test_data = data.pop(test_fold)
     train_data = pd.concat(data)
@@ -17,7 +17,7 @@ def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr, res_queue):
     train_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
     test_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
 
-    mod = SAKTModel(ns, bs, dm, nh, dr, ilr, ldr, gpu_num=test_fold)
+    mod = SAKTModel(ns, bs, dm, nh, dr, ilr, ldr, feature_col='old_problem_id', gpu_num=test_fold)
     mod.fit(train_data, num_epochs=1)
     res_queue.put(mod.eval(test_data)['auc'])
 

@@ -1,6 +1,6 @@
 from PFA.PFA_Model import PFA
 from bkt.BKT_Model import BKTModel
-from sakt.SAKT_model import SAKTModel
+from sakt.sakt_pt import SAKTModel
 from DKT.DKT_pt import DKT
 from multiprocessing import Pool
 from tqdm import tqdm
@@ -15,6 +15,8 @@ def run_one_sample(model_type, train_samples, test_samples, sample_num):
     for year, samps in test_samples.items():
         tests[year] = (samps[sample_num])
 
+    gpu_num = sample_num - 1
+
     needs_num_epochs = True
 
     if model_type == 'BKT':
@@ -25,10 +27,10 @@ def run_one_sample(model_type, train_samples, test_samples, sample_num):
         model = PFA()
     if model_type == 'DKT-E':
         num_epochs = 3
-        model = DKT(16, 50, 128, 0.33, 1e-4)  # UPDATE HYPERPARAMS LATER
+        model = DKT(16,50,128,0.33,1e-4,gpu_num=gpu_num,feature_col='old_problem_id')  # UPDATE HYPERPARAMS LATER
     if model_type == 'DKT-KC':
         num_epochs = 3
-        model = DKT(16, 50, 128, 0.33, 1e-4)
+        model = DKT(16,50,128,0.33,1e-4,gpu_num=gpu_num,feature_col='skill_id')
     if model_type == 'SAKT-E':
         model = SAKTModel()  # UPDATE HYPERPARAMS LATER
     if model_type == 'SAKT-KC':

@@ -94,7 +94,7 @@ class PFA:
         return auc
 
 
-    def eval(self, data):
+    def evaluate(self, data):
         if self.n_s == 0:
             print("No model has been trained, aborting")
             return
