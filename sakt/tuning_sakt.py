@@ -2,10 +2,12 @@ import optuna
 from SAKT_model import SAKTModel
 import pandas as pd
 import numpy as np
+import multiprocessing as mp
 from multiprocessing import Process, Queue
 
 
 def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr, res_queue):
+    print(test_fold)
     test_data = data.pop(test_fold)
     train_data = pd.concat(data)
 
@@ -16,8 +18,8 @@ def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr, res_queue):
     test_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
 
     mod = SAKTModel(ns, bs, dm, nh, dr, ilr, ldr, gpu_num=test_fold)
-    mod.fit(train_data, num_epochs=ne)
-    res_queue.put(mod.eval(test_data))
+    mod.fit(train_data, num_epochs=1)
+    res_queue.put(mod.eval(test_data)['auc'])
 
 
 def objective(trial):
@@ -36,7 +38,7 @@ def objective(trial):
     d_model = trial.suggest_int('d_model', 64, 512, step = 32)
     num_heads = trial.suggest_int('num_heads', 2, 32, step = 2)
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
-    num_epochs = trial.suggest_int('num_epochs', 3, 30)
+    num_epochs = trial.suggest_int('num_epochs', 3, 10)
     init_learning_rate = trial.suggest_float('init_learning_rate', 1e-6, 1e-2, log=True)
     learning_decay_rate = trial.suggest_float('learning_decay_rate', 0.7, 0.99)
 
@@ -44,7 +46,7 @@ def objective(trial):
     res_queue = Queue()
     procs = []
     for i in range(4):
-        p = Process(target=run_one_fold, args=(data.copy(), num_steps, i, batch_size, d_model, num_heads, dropout_rate, num_epochs, init_learning_rate, learning_decay_rate, res_queue,))
+        p = Process(target=run_one_fold, args=(data.copy(), i, num_steps, batch_size, d_model, num_heads, dropout_rate, num_epochs, init_learning_rate, learning_decay_rate, res_queue,))
         p.start()
         procs.append(p)
 
@@ -59,9 +61,9 @@ def objective(trial):
 
 
 if __name__ == '__main__':
+    mp.set_start_method('spawn')
     study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler())
     study.optimize(objective, n_trials=100)
-
 
     print("Best hyperparameters:", study.best_params)
     print("Best validation AUC:", study.best_value)

@@ -33,9 +33,9 @@ class SAKTModel(tf.keras.Model):
         decay_rate=learning_decay_rate,
         staircase=True)
         os.environ['CUDA_VISIBLE_DEVICES']=str(gpu_num)
-
+        print(tf.config.list_physical_devices())
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-        self.device = f"/GPU:{gpu_num}" if tf.config.list_physical_devices('GPU') else "/CPU:0"
+        self.device = f"/GPU:0" if tf.config.list_physical_devices('GPU') else "/CPU:0"
         print(f"Using device: {self.device}")
     
             

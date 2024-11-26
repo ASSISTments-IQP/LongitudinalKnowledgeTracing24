@@ -196,7 +196,7 @@ class DKT:
             return
 
         val_data = self.preprocess(val_data, fitting=False)
-        dataset = DKTDataset(val_data, self.vocab_to_idx, self.num_steps)
+        dataset = DKTDataset(val_data, self.vocab_to_idx, self.num_steps, self.feature_col)
         if len(dataset) == 0:
             print("No data to evaluate on.")
             return

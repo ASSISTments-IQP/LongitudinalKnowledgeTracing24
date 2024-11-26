@@ -1,5 +1,3 @@
-from numpy.f2py.cfuncs import needs
-
 from PFA.PFA_Model import PFA
 from bkt.BKT_Model import BKTModel
 from sakt.SAKT_model import SAKTModel
@@ -29,10 +27,12 @@ def run_cv_one_fold(data, test_fold_num, model_type):
         num_epochs = 3
         model = DKT(16,50,128,0.33,1e-4,test_fold_num,'skill_id')
     if model_type == 'SAKT-E':
-        model = SAKTModel()  # UPDATE HYPERPARAMS LATER
+        pass
+       model = SAKTModel()  # UPDATE HYPERPARAMS LATER
     if model_type == 'SAKT-KC':
-        model = SAKTModel
-
+       model = SAKTModel()
+        pass
+ 
     if needs_num_epochs:
         model.fit(train, num_epochs)
     else:
@@ -69,7 +69,6 @@ if __name__ == '__main__':
 
     res = {}
     args = zip([fold_dict] * 5, range(5), [model_type] * 5)
-
     with Pool(5) as p:
         for l in p.starmap(run_cv_one_fold, args):
             res[l[1]] = l[0]
