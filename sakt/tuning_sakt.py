@@ -18,7 +18,7 @@ def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr, res_queue):
     test_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
 
     mod = SAKTModel(ns, bs, dm, nh, dr, ilr, ldr, feature_col='old_problem_id', gpu_num=test_fold)
-    mod.fit(train_data, num_epochs=1)
+    mod.fit(train_data, num_epochs=ne)
     res_queue.put(mod.eval(test_data)['auc'])
 
 
@@ -63,7 +63,7 @@ def objective(trial):
 if __name__ == '__main__':
     mp.set_start_method('spawn')
     study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler())
-    study.optimize(objective, n_trials=100)
+    study.optimize(objective, n_trials=50)
 
     print("Best hyperparameters:", study.best_params)
     print("Best validation AUC:", study.best_value)

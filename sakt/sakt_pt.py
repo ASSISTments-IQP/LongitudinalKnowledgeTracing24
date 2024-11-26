@@ -194,7 +194,7 @@ class SAKTModel(nn.Module):
             print(f"Epoch {epoch+1}/{num_epochs}, Training loss: {train_loss:.4f}, AUC: {train_auc:.4f}")
 
             # Validation
-            val_auc, val_loss = self.evaluate_internal(val_loader, self.device)
+            val_auc, val_loss = self.evaluate_internal(val_loader)
             print(f"Validation loss: {val_loss:.4f}, AUC: {val_auc:.4f}")
 
             if val_auc > best_val_auc:
