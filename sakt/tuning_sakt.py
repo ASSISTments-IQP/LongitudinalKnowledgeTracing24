@@ -36,7 +36,7 @@ def objective(trial):
     num_steps = trial.suggest_int('num_steps', 20, 100, step = 10)
     batch_size = trial.suggest_int('batch_size', 16, 64, step=8)
     d_model = trial.suggest_int('d_model', 64, 512, step = 32)
-    num_heads = trial.suggest_int('num_heads', 2, 32, step = 2)
+    num_heads = trial.suggest_categorical('num_heads', [2,4,8,16,32])
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
     num_epochs = trial.suggest_int('num_epochs', 3, 10)
     init_learning_rate = trial.suggest_float('init_learning_rate', 1e-6, 1e-2, log=True)
