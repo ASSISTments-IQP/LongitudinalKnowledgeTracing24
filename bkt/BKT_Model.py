@@ -37,7 +37,7 @@ class BKTModel:
 
         return skill_dict
 
-    def fit(self, data):
+    def train(self, data):
 
         if self.verbose:
             print("Beginning data preprocessing.")
