@@ -36,7 +36,7 @@ def run_one_sample(model_type, train_samples, test_samples, sample_num):
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=gpu_num,feature_col='old_problem_id')  # UPDATE HYPERPARAMS LATER
     if model_type == 'SAKT-KC':
         num_epochs = 6
-        model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=gpu_num,feature_col='skill_id'
+        model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=gpu_num,feature_col='skill_id')
 
     if needs_num_epochs:
         model.train(train, num_epochs)
@@ -45,7 +45,7 @@ def run_one_sample(model_type, train_samples, test_samples, sample_num):
 
     res = {}
     for year, samp in tests.items():
-        res[year] = model.eval(samp)
+        res[year] = model.evaluate(samp)
 
     return res, sample_num
 

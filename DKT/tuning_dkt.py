@@ -6,6 +6,7 @@ from multiprocessing import Pool
 
 
 def run_one_fold(data, test_fold, ns, bs, dm, dr, lr):
+    print((ns,bs,dm,dr,lr))
     test_data = data.pop(test_fold)
     train_data = pd.concat(data)
 
@@ -37,7 +38,6 @@ def objective(trial):
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
     learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-2, log=True)
 
-    print(batch_size)
     res = []
     args = zip([data] * 4, range(4), [num_steps] * 4, [batch_size] * 4, [d_model] * 4, [dropout_rate] * 4, [learning_rate] * 4)
     with Pool(4) as p:
