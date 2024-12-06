@@ -1,3 +1,4 @@
+import numpy as np
 from PFA.PFA_Model import PFA
 from bkt.BKT_Model import BKTModel
 from sakt.SAKT_model import SAKTModel
@@ -38,10 +39,18 @@ def run_one_fold(val_fold, data, model_type, year):
         model = PFA(verbose=0)
     if model_type == 'SAKT':
         model = SAKTModel()
+        params = filter(lambda p: p.requires_grad, model.parameters())
+        num_params = sum([np.prod(p.size()) for p in params])
+        print(model)
+        print(f'Model has {num_params} trainable parameters')
     if model_type == 'BKT':
         model = BKTModel(verbose=0)
     if model_type == 'DKT':
         model = DKT(verbose=0)
+        params = filter(lambda p: p.requires_grad, model.parameters())
+        num_params = sum([np.prod(p.size()) for p in params])
+        print(model)
+        print(f'Model has {num_params} trainable parameters')
 
     model.fit(train)
     print(f"{model_type} fit for {year} with hold-out fold {val_fold}")
