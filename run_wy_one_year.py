@@ -34,9 +34,9 @@ def run_cv_one_fold(data, test_fold_num, model_type):
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=test_fold_num,feature_col='skill_id')
  
     if needs_num_epochs:
-        model.train(train, num_epochs)
+        model.fit(train, num_epochs)
     else:
-        model.train(train)
+        model.fit(train)
 
     return model.evaluate(test), test_fold_num
 

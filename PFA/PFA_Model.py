@@ -65,7 +65,7 @@ class PFA:
         return X, y
 
 
-    def train(self, data):
+    def fit(self, data):
         self.skills = np.sort(data.skill_id.unique())
         self.n_s = len(self.skills)
 

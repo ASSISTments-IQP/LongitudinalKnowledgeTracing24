@@ -39,9 +39,9 @@ def run_one_sample(model_type, train_samples, test_samples, sample_num):
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=gpu_num,feature_col='skill_id')
 
     if needs_num_epochs:
-        model.train(train, num_epochs)
+        model.fit(train, num_epochs)
     else:
-        model.train(train)
+        model.fit(train)
 
     res = {}
     for year, samp in tests.items():
