@@ -30,6 +30,7 @@ def run_cv_one_fold(data, test_fold_num, model_type):
         num_epochs = 6
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=test_fold_num,feature_col='old_problem_id')  # UPDATE HYPERPARAMS LATER
     if model_type == 'SAKT-KC':
+        num_epochs = 6
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=test_fold_num,feature_col='skill_id')
  
     if needs_num_epochs:

@@ -133,7 +133,7 @@ class SAKTModel(nn.Module):
     def compute_loss(self, predictions, targets):
         return self.loss_fn(predictions, targets)
 
-    def fit(self, df: pd.DataFrame, batch_size=64, num_epochs=5, lr=1e-3, patience=2, validation_split=0.1):
+    def train(self, df: pd.DataFrame, batch_size=64, num_epochs=5, lr=1e-3, patience=2, validation_split=0.1):
         """
         Trains the model using the provided DataFrame.
 
