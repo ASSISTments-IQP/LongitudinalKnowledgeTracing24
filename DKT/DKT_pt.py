@@ -141,7 +141,7 @@ class DKT:
 
         self.model = DKTModel(self.vocab_size, self.embedding_dim, self.hidden_dim_size, self.dropout_rate).to(self.device)
         criterion = nn.BCELoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, weight_decay=1e-2)
 
         for epoch in range(num_epochs):
             self.model.train()
