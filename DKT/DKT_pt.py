@@ -156,7 +156,7 @@ class DKT:
 
                 optimizer.zero_grad()
                 outputs = self.model(input_seq)
-                first_pad_index = torch.nonzero(torch.where(input_seq == '<PAD>', 1, 0))[0]
+                first_pad_index = torch.nonzero(torch.where(torch.eq(input_seq, 0), 1, 0))[0]
 
                 # Mask out padding and entries with -1 labels
                 mask = (label_seq != -1)
