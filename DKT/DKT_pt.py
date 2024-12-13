@@ -16,14 +16,12 @@ class DKTModel(nn.Module):
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
         self.dr = nn.Dropout(dropout_rate)
         self.fc = nn.Linear(hidden_dim, vocab_size)
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.emb(x)
         output, _ = self.lstm(x)
         output = self.dr(output)
         output = self.fc(output)
-        output = self.sigmoid(output)
         return output
 
 class DKTDataset(Dataset):
@@ -142,7 +140,7 @@ class DKT:
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
         self.model = DKTModel(self.vocab_size, self.embedding_dim, self.hidden_dim_size, self.dropout_rate).to(self.device)
-        criterion = nn.BCELoss()
+        criterion = nn.BCEWithLogitsLoss()
         optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, weight_decay=0.98)
 
         for epoch in range(num_epochs):
@@ -208,7 +206,7 @@ class DKT:
         total_loss = 0.0
         total_preds = []
         total_labels = []
-        criterion = nn.BCELoss()
+        criterion = nn.BCEWithLogitsLoss()
 
         with torch.no_grad():
             for batch_idx, (input_seq, label_seq) in enumerate(
