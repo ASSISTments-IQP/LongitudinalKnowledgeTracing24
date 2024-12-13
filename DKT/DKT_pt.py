@@ -16,13 +16,15 @@ class DKTModel(nn.Module):
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
         self.dr = nn.Dropout(dropout_rate)
         self.fc = nn.Linear(hidden_dim, vocab_size)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.emb(x)
         output, _ = self.lstm(x)
         output = self.dr(output)
         output = self.fc(output)
-        return output
+        return self.sigmoid(output)
+
 
 class DKTDataset(Dataset):
     def __init__(self, data, vocab_to_idx, max_seq_len, feature_col):
@@ -58,10 +60,6 @@ class DKTDataset(Dataset):
                 for i, (enc, corr) in enumerate(zip(sub_feat_seq, sub_correct_seq)):
                     if enc == 0:
                         continue
-                    # Ensure corr is 0 or 1
-                    corr = int(corr)
-                    if corr not in [0, 1]:
-                        corr = 0  # Handle invalid values
                     label_seq[i, enc] = corr
                 self.samples.append((input_seq, label_seq))
 
@@ -81,7 +79,6 @@ def compute_auc(y_true, y_pred):
     except ValueError:
         auc = 0.0
     return auc
-
 
 def compute_accuracy(y_true, y_pred):
     y_pred_labels = (y_pred.cpu().numpy() >= 0.5).astype(int)
@@ -109,11 +106,7 @@ class DKT:
 
     def preprocess(self, data, fitting=True):
         data = data.copy()
-        data['start_time'] = pd.to_datetime(
-            data['start_time'],
-            utc=True,
-            errors='coerce'
-        )
+        data['start_time'] = pd.to_datetime(data['start_time'], utc=True, errors='coerce')
         data = data[['user_xid', self.feature_col, 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
         data[self.feature_col] = data[self.feature_col].astype(str)
 
@@ -140,8 +133,8 @@ class DKT:
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
         self.model = DKTModel(self.vocab_size, self.embedding_dim, self.hidden_dim_size, self.dropout_rate).to(self.device)
-        criterion = nn.BCEWithLogitsLoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, weight_decay=0.98)
+        criterion = nn.BCELoss()
+        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, weight_decay=1e-5)
 
         for epoch in range(num_epochs):
             self.model.train()
@@ -149,23 +142,20 @@ class DKT:
             total_preds = []
             total_labels = []
 
-            for batch_idx, (input_seq, label_seq) in enumerate(
-                    tqdm(dataloader, desc=f'Epoch {epoch + 1}/{num_epochs}', disable=not self.verbose)):
+            for batch_idx, (input_seq, label_seq) in enumerate(tqdm(dataloader, desc=f'Epoch {epoch + 1}/{num_epochs}', disable=not self.verbose)):
                 input_seq = input_seq.to(self.device)
                 label_seq = label_seq.to(self.device)
 
                 optimizer.zero_grad()
                 outputs = self.model(input_seq)
 
-                # Mask out padding and entries with -1 labels
                 mask = (label_seq != -1)
                 y_pred = outputs[mask]
                 y_true = label_seq[mask]
 
                 if y_true.numel() == 0:
-                    continue  # Skip if no valid entries in batch
+                    continue
 
-                # Ensure y_true is within [0, 1]
                 y_true = torch.clamp(y_true, min=0.0, max=1.0)
 
                 loss = criterion(y_pred, y_true)
@@ -173,11 +163,11 @@ class DKT:
                 optimizer.step()
 
                 total_loss += loss.item()
-
                 total_preds.append(y_pred.detach())
                 total_labels.append(y_true.detach())
 
             avg_loss = total_loss / len(dataloader) if len(dataloader) > 0 else float('inf')
+            print(f"[DEBUG] Epoch {epoch + 1}, Average Loss: {avg_loss}")
 
             if total_preds:
                 all_preds = torch.cat(total_preds)
@@ -189,60 +179,3 @@ class DKT:
                 acc = 0.0
 
             print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {avg_loss:.4f}, AUC: {auc:.4f}, Accuracy: {acc:.4f}")
-
-    def evaluate(self, val_data):
-        if self.model is None:
-            print('Model has not been trained yet')
-            return
-
-        val_data = self.preprocess(val_data, fitting=False)
-        dataset = DKTDataset(val_data, self.vocab_to_idx, self.num_steps, self.feature_col)
-        if len(dataset) == 0:
-            print("No data to evaluate on.")
-            return
-        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
-
-        self.model.eval()
-        total_loss = 0.0
-        total_preds = []
-        total_labels = []
-        criterion = nn.BCEWithLogitsLoss()
-
-        with torch.no_grad():
-            for batch_idx, (input_seq, label_seq) in enumerate(
-                    tqdm(dataloader, desc="Evaluation", disable=not self.verbose)):
-                input_seq = input_seq.to(self.device)
-                label_seq = label_seq.to(self.device)
-
-                outputs = self.model(input_seq)
-
-                # Mask out padding and entries with -1 labels
-                mask = (label_seq != -1)
-                y_pred = outputs[mask]
-                y_true = label_seq[mask]
-
-                if y_true.numel() == 0:
-                    continue  # Skip if no valid entries in batch
-
-                # Ensure y_true is within [0, 1]
-                y_true = torch.clamp(y_true, min=0.0, max=1.0)
-
-                loss = criterion(y_pred, y_true)
-                total_loss += loss.item()
-
-                total_preds.append(y_pred)
-                total_labels.append(y_true)
-
-        avg_loss = total_loss / len(dataloader) if len(dataloader) > 0 else float('inf')
-        if total_preds:
-            all_preds = torch.cat(total_preds)
-            all_labels = torch.cat(total_labels)
-            auc = compute_auc(all_labels, all_preds)
-            acc = compute_accuracy(all_labels, all_preds)
-        else:
-            auc = 0.0
-            acc = 0.0
-
-        print(f"Evaluation Results - Loss: {avg_loss:.4f}, AUC: {auc:.4f}, Accuracy: {acc:.4f}")
-
-        return auc
