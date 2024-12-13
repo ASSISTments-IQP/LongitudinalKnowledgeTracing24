@@ -7,6 +7,7 @@ from sklearn.metrics import roc_auc_score, accuracy_score
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
+from zmq.backend import first
 
 
 class DKTModel(nn.Module):
@@ -156,6 +157,7 @@ class DKT:
 
                 optimizer.zero_grad()
                 outputs = self.model(input_seq)
+                first_pad_index = torch.nonzero(torch.where(input_seq == '<PAD>', 1, 0))[0]
 
                 # Mask out padding and entries with -1 labels
                 mask = (label_seq != -1)
@@ -164,6 +166,10 @@ class DKT:
 
                 if y_true.numel() == 0:
                     continue  # Skip if no valid entries in batch
+
+                y_pred = y_pred[:first_pad_index]
+                y_true = y_true[:first_pad_index]
+
 
                 # Ensure y_true is within [0, 1]
                 y_true = torch.clamp(y_true, min=0.0, max=1.0)
