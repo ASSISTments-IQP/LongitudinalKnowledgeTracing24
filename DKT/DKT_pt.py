@@ -7,7 +7,6 @@ from sklearn.metrics import roc_auc_score, accuracy_score
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-from zmq.backend import first
 
 
 class DKTModel(nn.Module):
