@@ -58,6 +58,8 @@ class DKTDataset(Dataset):
 
                 label_seq = np.full((self.max_seq_len, len(self.vocab_to_idx)), -1, dtype=np.float32)
                 for i, (enc, corr) in enumerate(zip(sub_feat_seq, sub_correct_seq)):
+                    if enc == 0:
+                        continue
                     # Ensure corr is 0 or 1
                     corr = int(corr)
                     if corr not in [0, 1]:
@@ -156,7 +158,6 @@ class DKT:
 
                 optimizer.zero_grad()
                 outputs = self.model(input_seq)
-                first_pad_index = torch.nonzero(torch.where(torch.eq(input_seq, 0), 1, 0))[0]
 
                 # Mask out padding and entries with -1 labels
                 mask = (label_seq != -1)
@@ -165,10 +166,6 @@ class DKT:
 
                 if y_true.numel() == 0:
                     continue  # Skip if no valid entries in batch
-
-                y_pred = y_pred[:first_pad_index]
-                y_true = y_true[:first_pad_index]
-
 
                 # Ensure y_true is within [0, 1]
                 y_true = torch.clamp(y_true, min=0.0, max=1.0)
