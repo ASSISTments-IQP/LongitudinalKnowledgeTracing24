@@ -5,8 +5,8 @@ from DKT_pt import DKT
 
 
 def main():
-    file_path = '../Data/samples/21-22/sample1.csv'
-    test_file_path = '../Data/samples/22-23/sample1.csv'
+    file_path = '../data/samples/21-22/sample1.csv'
+    test_file_path = '../data/samples/22-23/sample1.csv'
     #'23-24-problem_logs.csv'
 
     train = pd.read_csv(file_path)
