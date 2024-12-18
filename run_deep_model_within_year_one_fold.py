@@ -24,7 +24,7 @@ def run_one_fold(val_fold, data, model_type, year):
 
     model.fit(train, num_epochs=1)
     print(f"{model_type} fit for {year} with hold-out fold {val_fold}")
-    return model.eval(validation)
+    return model.evaluate(validation)
 
 
 if __name__ == '__main__':

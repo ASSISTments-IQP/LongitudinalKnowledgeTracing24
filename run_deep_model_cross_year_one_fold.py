@@ -19,7 +19,7 @@ def run_one_sample(train, test_samps, model_type):
 	model.fit(train)
 	res = {}
 	for year, samp in test_samps.items():
-		res[year] = model.eval(samp)
+		res[year] = model.evaluate(samp)
 	return res
 
 if __name__ == '__main__':
