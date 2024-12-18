@@ -3,10 +3,9 @@
 #SBATCH -n 1
 #SBATCH --mem=128g
 #SBATCH -J "DKTHPOPT"
-#SBATCH -p long
-#SBATCH -t 168:00
-#SBATCH --gres=gpu:2
-module load python/3.12.7
+#SBATCH -p short
+#SBATCH -t 24:00
+#SBATCH --gres=gpu:1
 module load cuda
-source ~/myenvs/lkt-env/bin/activate
-python3 ./gpu_cuda_test.py
+source ~/myenvs/cuda-torch/bin/activate
+python3 ./main_DKT.py
