@@ -11,11 +11,11 @@ tf.config.run_functions_eagerly(True)
 
 
 class DKT_model(tf.keras.Model):
-	def __init__(self, vocab_size, num_dim, max_seq_len, verbose=True):
+	def __init__(self, vocab_size, num_dim, max_seq_len=50, verbose=True):
 		input = tf.keras.Input(shape=(max_seq_len,))
 		emb = Embedding(input_dim=vocab_size, output_dim=num_dim, mask_zero=True)(input)
-		x = LSTM(124, activation='tanh', return_sequences=True)(emb)
-		dr = Dropout(0.2)(x)
+		x = LSTM(128, activation='tanh', return_sequences=True)(emb)
+		dr = Dropout(0.33)(x)
 		output = TimeDistributed(Dense(vocab_size, activation='sigmoid'))(dr)
 		if verbose:
 			self.verbose = 2
@@ -30,7 +30,7 @@ class DKT_model(tf.keras.Model):
 			y_pred_rel = y_pred[indices]
 			return tf.keras.losses.binary_crossentropy(y_true_rel, y_pred_rel)
 
-		super(DKT_model, self).compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+		super(DKT_model, self).compile(optimizer=keras.optimizers.Adam(learning_rate=1e-4),
 									   loss=custom_loss,
 									   metrics=['accuracy', 'AUC'])
 

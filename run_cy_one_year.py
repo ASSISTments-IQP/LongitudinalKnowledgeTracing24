@@ -1,7 +1,7 @@
 from PFA.PFA_Model import PFA
 from bkt.BKT_Model import BKTModel
 from sakt.sakt_pt import SAKTModel
-from DKT.DKT_pt import DKT
+from DKT.DKT_Model import DKT_model
 from multiprocessing import Pool
 from tqdm import tqdm
 import pandas as pd
@@ -27,10 +27,10 @@ def run_one_sample(model_type, train_samples, test_samples, sample_num):
         model = PFA()
     if model_type == 'DKT-E':
         num_epochs = 3
-        model = DKT(16,50,128,0.33,1e-4,gpu_num=gpu_num,feature_col='old_problem_id')  # UPDATE HYPERPARAMS LATER
+        model = DKT_model(gpu_num=gpu_num, feature_col='old_problem_id')  # UPDATE HYPERPARAMS LATER
     if model_type == 'DKT-KC':
         num_epochs = 3
-        model = DKT(16,50,128,0.33,1e-4,gpu_num=gpu_num,feature_col='skill_id')
+        model = DKT_model(16,50,128,0.33,1e-4,gpu_num=gpu_num, feature_col='skill_id')
     if model_type == 'SAKT-E':
         num_epochs = 6
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=gpu_num,feature_col='old_problem_id')  # UPDATE HYPERPARAMS LATER

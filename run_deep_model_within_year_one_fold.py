@@ -1,4 +1,4 @@
-from sakt.SAKT_model import SAKTModel
+# from sakt.SAKT_model import SAKTModel
 from DKT.DKT_Model import DKT
 from tqdm import tqdm
 import pandas as pd
@@ -17,7 +17,8 @@ def run_one_fold(val_fold, data, model_type, year):
     train = pd.concat(train_list)
 
     if model_type == 'SAKT':
-        model = SAKTModel()
+        # model = SAKTModel()
+        pass
     if model_type == 'DKT':
         model = DKT()
 
