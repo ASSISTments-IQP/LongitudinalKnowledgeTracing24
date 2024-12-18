@@ -108,7 +108,7 @@ class DKT:
 		return seq, lab
 
 
-	def fit(self, data, num_epochs=5):
+	def fit(self, data, num_epochs=3):
 		if self.verbose:
 			print("Beginning data preprocessing")
 		X, y = self.preprocess(data, fitting=True)

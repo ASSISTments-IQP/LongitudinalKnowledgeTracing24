@@ -22,7 +22,7 @@ def run_one_fold(val_fold, data, model_type, year):
     if model_type == 'DKT':
         model = DKT()
 
-    model.fit(train, num_epochs=1)
+    model.fit(train, num_epochs=3)
     print(f"{model_type} fit for {year} with hold-out fold {val_fold}")
     return model.evaluate(validation)
 
