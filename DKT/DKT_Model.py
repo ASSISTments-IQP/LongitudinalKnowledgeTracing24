@@ -1,80 +1,44 @@
 import numpy as np
-import torch
-from torch import nn
-from torch.utils.data import DataLoader, Dataset
+import tensorflow as tf
+from tensorflow.keras.layers import Dense, LSTM, Embedding, TimeDistributed, Dropout, StringLookup
 import torch.nn.functional as F
 import torch
 from tqdm import tqdm
-import pandas as pd
-from sklearn.metrics import roc_auc_score, accuracy_score
+import keras
 import math
 
+tf.config.run_functions_eagerly(True)
 
-# no verbose for now
-class DKT_model(nn.Module):
-	def __init__(self, vocab_size, embedding_dim, hidden_dim):
-		super(DKT_model, self).__init__()
-		self.emb = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
-		self.dr = nn.Dropout(0.2)
-		self.ltsm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
-		self.fc = nn.Linear(hidden_dim, vocab_size)
-		self.sigmoid = nn.Sigmoid
-  
-  
-	def forward(self, x):
-		x = self.emb(x)
-		x = self.dr(x)
-		output, _ = self.ltsm(x)
-		output = self.fc(output)
-		output = self.sigmoid(output)
-		return output
 
-class DKTDataset(Dataset):
-    def __init__(self, data, vocab_to_idx, max_seq_len):
-        self.data = data
-        self.vocab_to_idx = vocab_to_idx
-        self.max_seq_len = max_seq_len
-        self.samples = []
-        self._prep_samples()
-        
-    def _prep_samples(self):
-        user_groups = self.data.groupby('user_xid')
-        for uid, u_data in user_groups:
-            u_data = u_data.sort_values('start_time')
-            u_data['skill_id'] = u_data['skill_id'].astype(str)
-            u_data['skill_id_n_corr'] = u_data['skill_id']
-            u_data.loc[u_data['discrete_score'] == 0, 'skill_id_n_corr'] += '0'
-            u_data.loc[u_data['discrete_score'] == 1, 'skill_id_n_corr'] += '1'
-            encoded_seq = [self.vocab_to_idx.get(s, self.vocab_to_idx['<UNK>']) for s in u_data['skill_id_x_corr']]
-            correct_seq = u_data['discrete_score'].to_numpy()
-            
-            seq_len = len(encoded_seq)
-            for start_idx in range(0, seq_len, self.max_seq_len):
-                end_idx = min(start_idx + self.max_seq_len, seq_len)
-                sub_feat_seq = encoded_seq[start_idx:end_idx]
-                sub_correct_seq = correct_seq[start_idx:end_idx]
-                #pad thaim
-                pad_len = self.max_seq_len -len(sub_feat_seq)
-                input_seq = sub_feat_seq + [self.vocab_to_idx['<PAD>']] * pad_len
-                
-                label_seq = np.full((self.max_seq_len, len(self.vocab_to_idx)), -1 , dtype = np.float32)
-                for i, (enc, corr) in enumerate(zip(sub_feat_seq, sub_correct_seq)):
-                    label_seq[i, enc] = corr
-                
-                self.samples.append((input_seq, label_seq))
-    def __len__(self):
-        return len(self.samples)
-    def __get_item__(self, idx):
-        input_seq, label = self.samples[idx]
-        return torch.tensor(input_seq, dtype=torch.long), torch.tensor(label, dtype = torch.float32)
-    
-    
+class DKT_model(tf.keras.Model):
+	def __init__(self, vocab_size, num_dim, max_seq_len, verbose=True):
+		input = tf.keras.Input(shape=(max_seq_len,))
+		emb = Embedding(input_dim=vocab_size, output_dim=num_dim, mask_zero=True)(input)
+		x = LSTM(124, activation='tanh', return_sequences=True)(emb)
+		dr = Dropout(0.2)(x)
+		output = TimeDistributed(Dense(vocab_size, activation='sigmoid'))(dr)
+		if verbose:
+			self.verbose = 2
+		else:
+			self.verbose = 0
+		super(DKT_model, self).__init__(inputs=input, outputs=output)
+
+	def compile(self):
+		def custom_loss(y_true, y_pred):
+			indices = tf.math.not_equal(y_true, -1)
+			y_true_rel = y_true[indices]
+			y_pred_rel = y_pred[indices]
+			return tf.keras.losses.binary_crossentropy(y_true_rel, y_pred_rel)
+
+		super(DKT_model, self).compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+									   loss=custom_loss,
+									   metrics=['accuracy', 'AUC'])
 
 	@tf.function
 	def fit(self, x, y, epochs, batch_size):
 		return super(DKT_model, self).fit(x=x, y=y, epochs=epochs, batch_size=batch_size, verbose = self.verbose)
 
-	def eval(self, x, y):
+	def evaluate(self, x, y):
 		return super(DKT_model, self).evaluate(x=x, y=y, verbose = self.verbose)
 
 
