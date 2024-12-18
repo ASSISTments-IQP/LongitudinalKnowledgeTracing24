@@ -14,7 +14,7 @@ class DKT_model(tf.keras.Model):
 	def __init__(self, vocab_size, num_dim, max_seq_len=50, verbose=True):
 		input = tf.keras.Input(shape=(max_seq_len,))
 		emb = Embedding(input_dim=vocab_size, output_dim=num_dim, mask_zero=True)(input)
-		x = LSTM(128, activation='tanh', return_sequences=True)(emb)
+		x = LSTM(64, activation='tanh', return_sequences=True)(emb)
 		dr = Dropout(0.33)(x)
 		output = TimeDistributed(Dense(vocab_size, activation='sigmoid'))(dr)
 		if verbose:
