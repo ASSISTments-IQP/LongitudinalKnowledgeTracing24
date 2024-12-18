@@ -38,7 +38,7 @@ class DKT_model(tf.keras.Model):
 	def fit(self, x, y, epochs, batch_size):
 		return super(DKT_model, self).fit(x=x, y=y, epochs=epochs, batch_size=batch_size, verbose = self.verbose)
 
-	def evaluate(self, x, y):
+	def eval(self, x, y):
 		return super(DKT_model, self).evaluate(x=x, y=y, verbose = self.verbose)
 
 
@@ -130,7 +130,7 @@ class DKT:
 		return auc
 
 
-	def eval(self, data):
+	def evaluate(self, data):
 		if self.vocab_size == 0:
 			print("Model has not been trained yet.")
 			return
