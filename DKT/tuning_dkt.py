@@ -17,8 +17,8 @@ def run_one_fold(data, test_fold, ns, bs, dm, dr, lr, rl):
     test_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
 
     mod = DKT(bs, ns, dm, dr, lr, rl, gpu_num=test_fold)
-    mod.train(train_data, num_epochs=5)
-    return mod.eval(test_data)
+    mod.fit(train_data, num_epochs=5)
+    return mod.evaluate(test_data)
 
 
 def objective(trial):
