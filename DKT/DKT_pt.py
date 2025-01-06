@@ -145,7 +145,7 @@ def compute_accuracy(y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
 
 
 class DKT:
-    def __init__(self, batch_size:int=64, num_steps:int=10, hidden_dim_size:int=124, dropout_rate:float=0.2, learning_rate:float=1e-3, verbose:bool=True, gpu_num:int=1, feature_col:str = 'skill_id')-> None:
+    def __init__(self, batch_size:int=64, num_steps:int=10, hidden_dim_size:int=124, dropout_rate:float=0.2, learning_rate:float=1e-3, regularization_lambda=1e-3, verbose:bool=True, gpu_num:int=1, feature_col:str = 'skill_id')-> None:
         self.model:Optional[nn.Module] = None
         self.feature_col: str = feature_col
         self.vocab: List[str] = []
@@ -156,6 +156,7 @@ class DKT:
         self.batch_size: int= batch_size
         self.dropout_rate: float = dropout_rate
         self.learning_rate: float = learning_rate
+        self.reg_lambda = regularization_lambda
         self.vocab_to_idx: Optional[Dict[str, int]] = None
         self.idx_to_vocab: Optional[Dict[str, int]] = None
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
@@ -216,7 +217,7 @@ class DKT:
 
         self.model = DKTModel(self.vocab_size, self.embedding_dim, self.hidden_dim_size, self.dropout_rate).to(self.device)
         criterion = nn.BCELoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, weight_decay=1e-5)
+        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, weight_decay=self.reg_lambda)
 
         for epoch in range(num_epochs):
             self.model.train()
