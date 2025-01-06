@@ -234,9 +234,9 @@ class DKT:
 
                 mask = (label_seq != -1) & (input_seq.unsqueeze(-1) != self.vocab_to_idx['<PAD>'])
                 y_pred = outputs[mask]
-                print(y_pred)
+                # print(y_pred)
                 y_true = label_seq[mask]
-                print(y_true)
+                # print(y_true)
 
                 if y_true.numel() == 0:
                     continue
@@ -254,10 +254,10 @@ class DKT:
                 
                 
                 original_keys = [self.idx_to_vocab.get(idx.item(), '<UNK>') for idx in input_seq[0]]
-                print("[DEBUG] Original Keys:", original_keys)
-                print("[DEBUG] Sample predictions:")
-                print(f"Predictions: {y_pred.detach().cpu().numpy()}")
-                print(f"Labels: {y_true.detach().cpu().numpy()}")
+                # print("[DEBUG] Original Keys:", original_keys)
+                # print("[DEBUG] Sample predictions:")
+                # print(f"Predictions: {y_pred.detach().cpu().numpy()}")
+                # print(f"Labels: {y_true.detach().cpu().numpy()}")
 
             avg_loss = total_loss / len(dataloader) if len(dataloader) > 0 else float('inf')
             print(f"[DEBUG] Epoch {epoch + 1}, Average Loss: {avg_loss}")
@@ -314,10 +314,10 @@ class DKT:
                 total_labels.append(y_true)
 
                 original_keys = [self.idx_to_vocab.get(idx.item(), '<UNK>') for idx in input_seq[0]]
-                print("[DEBUG] Original Keys:", original_keys)
-                print("[DEBUG] Sample predictions:")
-                print(f"Predictions: {y_pred.detach().cpu().numpy()}")
-                print(f"Labels: {y_true.detach().cpu().numpy()}")
+                # print("[DEBUG] Original Keys:", original_keys)
+                # print("[DEBUG] Sample predictions:")
+                # print(f"Predictions: {y_pred.detach().cpu().numpy()}")
+                # print(f"Labels: {y_true.detach().cpu().numpy()}")
 
         avg_loss = total_loss / len(dataloader) if len(dataloader) > 0 else float('inf')
         if total_preds:
