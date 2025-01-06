@@ -161,6 +161,7 @@ class DKT:
         self.idx_to_vocab: Optional[Dict[str, int]] = None
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print(torch.cuda.is_available())
 
     def preprocess(self, data: pd.DataFrame, fitting=True)-> pd.DataFrame:
         data = data.copy()
