@@ -39,73 +39,73 @@ class DKTDataset(Dataset):
         print(f' user_groups: \n {user_groups}')
         for uid, u_data in user_groups:
             
-            print(f'uid iterator: {uid}')
-            
-            print(f'u_data df: \n{u_data}')
+            # print(f'uid iterator: {uid}')
+            #
+            # print(f'u_data df: \n{u_data}')
             
             u_data = u_data.sort_values('start_time')
-            print(f'u_data sorted by start time: \n{u_data}')
+            # print(f'u_data sorted by start time: \n{u_data}')
             
             u_data[self.feature_col] = u_data[self.feature_col].astype(str)
-            print(f' u_dataw with relevant feature col cast to str:  \n {u_data}')
+            # print(f' u_dataw with relevant feature col cast to str:  \n {u_data}')
             
             x_cor_col_name:str = f'{self.feature_col}_x_corr'
-            print(f'x_cor_col_name: {x_cor_col_name}')
+            # print(f'x_cor_col_name: {x_cor_col_name}')
             
             u_data[x_cor_col_name] = u_data[self.feature_col]
-            print('u_data before +0s {u_data}')
+            # print('u_data before +0s {u_data}')
             
             u_data.loc[u_data['discrete_score'] == 0, x_cor_col_name] += '+0'
-            print(f'u_data after +0 but before +1s: {u_data}')
+            # print(f'u_data after +0 but before +1s: {u_data}')
             
             u_data.loc[u_data['discrete_score'] == 1, x_cor_col_name] += '+1'
-            print(f'u_data after +0 and + 1: {u_data}')
+            # print(f'u_data after +0 and + 1: {u_data}')
 
             encoded_seq: List[int] = [
                 self.vocab_to_idx.get(s, self.vocab_to_idx['<UNK>']) 
                 for s in u_data[x_cor_col_name]
             ]
-            print(f'encoded_seq: {encoded_seq}')
+            # print(f'encoded_seq: {encoded_seq}')
             
             correct_seq: np.ndarray = u_data['discrete_score'].to_numpy()
-            print(f' correct_seq: {correct_seq}')
+            # print(f' correct_seq: {correct_seq}')
 
             seq_len:int = len(encoded_seq)
-            print(f'sequence length: {seq_len}')
+            # print(f'sequence length: {seq_len}')
             
             for start_idx in range(0, seq_len, self.max_seq_len):
 
-                print(f'start_idx: {start_idx}')
+                # print(f'start_idx: {start_idx}')
                 
                 end_idx:int = min(start_idx + self.max_seq_len, seq_len)
-                print(f'end_idx: {end_idx}')
+                # print(f'end_idx: {end_idx}')
                 
                 sub_feat_seq:List[int] = encoded_seq[start_idx:end_idx]
-                print(f'sub_feat_seq: {sub_feat_seq}')
+                # print(f'sub_feat_seq: {sub_feat_seq}')
                 
                 sub_correct_seq: np.ndarray = correct_seq[start_idx:end_idx]
-                print(f'sub_correct_seq: {sub_correct_seq}')
+                # print(f'sub_correct_seq: {sub_correct_seq}')
                 
                 pad_len: int = self.max_seq_len - len(sub_feat_seq)
-                print(f'len of paddign: {pad_len}')
+                # print(f'len of paddign: {pad_len}')
                 
                 input_seq: List[int] = sub_feat_seq + [self.vocab_to_idx['<PAD>']] * pad_len
-                print(f'input_sequence: {input_seq}')
+                # print(f'input_sequence: {input_seq}')
                 
                 label_seq: np.ndarray= np.full((self.max_seq_len, len(self.vocab_to_idx)), -1, dtype=np.float32)
-                print(f'label_seq: {label_seq}')
+                # print(f'label_seq: {label_seq}')
                 
                 for i, (enc, corr) in enumerate(zip(sub_feat_seq, sub_correct_seq)):
-                    print(f'i: {i}')
-                    print(f'enc: {enc}')
-                    print(f'corr: {corr}')
+                    # print(f'i: {i}')
+                    # print(f'enc: {enc}')
+                    # print(f'corr: {corr}')
                     if enc == 0:
                         continue
                     label_seq[i, enc] = corr
-                    print(f'label_seq: {label_seq}')
+                    # print(f'label_seq: {label_seq}')
                 
                 self.samples.append((input_seq, label_seq))
-                print(f'self.samples: {self.samples}')
+                # print(f'self.samples: {self.samples}')
 
     def __len__(self):
         return len(self.samples)
@@ -119,10 +119,10 @@ def compute_auc(y_true: torch.Tensor, y_pred: torch.Tensor):
     y_pred_np: np.ndarray = y_pred.cpu().numpy()
 
     # Debugging AUC inputs
-    print(f"[DEBUG] y_true_np[:10]: {y_true_np[:10]}")
-    print(f"[DEBUG] y_pred_np[:10]: {y_pred_np[:10]}")
-    print(f"[DEBUG] Label distribution: {np.bincount(y_true_np.astype(int))}")
-    print(f"[DEBUG] Prediction variance: {np.var(y_pred_np):.4f}")
+    # print(f"[DEBUG] y_true_np[:10]: {y_true_np[:10]}")
+    # print(f"[DEBUG] y_pred_np[:10]: {y_pred_np[:10]}")
+    # print(f"[DEBUG] Label distribution: {np.bincount(y_true_np.astype(int))}")
+    # print(f"[DEBUG] Prediction variance: {np.var(y_pred_np):.4f}")
 
     try:
         auc = roc_auc_score(y_true_np, y_pred_np)
@@ -132,7 +132,7 @@ def compute_auc(y_true: torch.Tensor, y_pred: torch.Tensor):
     # Debug random baseline AUC for comparison
     random_preds = np.random.uniform(size=y_true_np.shape)
     random_auc = roc_auc_score(y_true_np, random_preds)
-    print(f"[DEBUG] Random baseline AUC: {random_auc:.4f}")
+    # print(f"[DEBUG] Random baseline AUC: {random_auc:.4f}")
 
     return auc
 
@@ -166,44 +166,44 @@ class DKT:
         data = data.copy()
 
         data['start_time'] = pd.to_datetime(data['start_time'], utc=True, errors='coerce')
-        print(f'df after converting start time to a pandas datetime obj: \n {data}')
+        # print(f'df after converting start time to a pandas datetime obj: \n {data}')
 
         data = data[['user_xid', self.feature_col, 'discrete_score', 'start_time']].sort_values(by=['user_xid', 'start_time'])
-        print(f'df sorted by userid and start time: \n {data}')
+        # print(f'df sorted by userid and start time: \n {data}')
 
         data[self.feature_col] = data[self.feature_col].astype(str)
-        print(f' df after converting feat cols to str: \n {data}')
+        # print(f' df after converting feat cols to str: \n {data}')
 
         if fitting:
             un: np.ndarray = data[self.feature_col].unique()
-            print(f'un: {un}')
+            # print(f'un: {un}')
 
             zer: np.ndarray = un + '+0'
-            print(f'zer: {zer}')
+            # print(f'zer: {zer}')
 
             on: np.ndarray = un + '+1'
-            print(f'on: {on}')
+            # print(f'on: {on}')
 
             self.vocab = np.concatenate([zer, on])
-            print(f'vocab: {self.vocab}')
+            # print(f'vocab: {self.vocab}')
 
             self.vocab_size = len(self.vocab) + 2
-            print(f'self.vocab_size: {self.vocab_size}')
+            # print(f'self.vocab_size: {self.vocab_size}')
             
             self.embedding_dim = max(10, math.ceil(math.log(self.vocab_size)))
-            print(f'self.embedding_dim: {self.embedding_dim}')
+            # print(f'self.embedding_dim: {self.embedding_dim}')
 
             self.vocab_to_idx = {token: idx + 2 for idx, token in enumerate(self.vocab)}
-            print(f'self.vocab_to_idx: {self.vocab_to_idx}')
+            # print(f'self.vocab_to_idx: {self.vocab_to_idx}')
 
             self.vocab_to_idx['<PAD>'] = 0
-            print(f'self.vocab_to_idx: {self.vocab_to_idx}')
+            # print(f'self.vocab_to_idx: {self.vocab_to_idx}')
 
             self.vocab_to_idx['<UNK>'] = 1
-            print(f'self.vocab_to_idx: {self.vocab_to_idx}')
+            # print(f'self.vocab_to_idx: {self.vocab_to_idx}')
 
             self.idx_to_vocab = {idx: token for token, idx in self.vocab_to_idx.items()}
-            print(f'self.idx_to_vocab: {self.idx_to_vocab}')
+            # print(f'self.idx_to_vocab: {self.idx_to_vocab}')
 
         return data
 
