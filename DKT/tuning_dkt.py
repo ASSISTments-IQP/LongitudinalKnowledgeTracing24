@@ -18,7 +18,7 @@ def run_one_fold(data, test_fold, ns, bs, dm, dr, lr, rl, ne):
 
     mod = DKT(bs, ns, dm, dr, lr, rl, gpu_num=test_fold)
     mod.fit(train_data, num_epochs=ne)
-    return mod.evaluate(test_data)
+    return mod.evaluate(test_data)[1]
 
 
 def objective(trial):
@@ -55,6 +55,6 @@ if __name__ == '__main__':
 
 
     print("Best hyperparameters:", study.best_params)
-    print("Best validation AUC:", study.best_value)
+    print("Best validation ACC:", study.best_value)
     
     
