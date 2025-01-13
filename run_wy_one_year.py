@@ -25,7 +25,7 @@ def run_cv_one_fold(data, test_fold_num, model_type):
         model = DKT(16,50,128,0.33,1e-4,gpu_num=test_fold_num,feature_col='old_problem_id')  # UPDATE HYPERPARAMS LATER
     if model_type == 'DKT-KC':
         num_epochs = 3
-        model = DKT(16,50,128,0.33,1e-4,gpu_num=test_fold_num,feature_col='skill_id')
+        model = DKT(40,80,448,0.1,1e-3, 1e-4, gpu_num=test_fold_num,feature_col='skill_id')
     if model_type == 'SAKT-E':
         num_epochs = 6
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=test_fold_num,feature_col='old_problem_id')  # UPDATE HYPERPARAMS LATER
