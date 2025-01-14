@@ -38,6 +38,7 @@ class DKT_KTM():
                 oh[i][col_idx] = 1
                 i += 1
             seqs = np.append(seqs, oh)
+            print(seqs.shape)
 
         return seqs.reshape(-1, self.num_steps, 2 * self.vocab_size)
 
