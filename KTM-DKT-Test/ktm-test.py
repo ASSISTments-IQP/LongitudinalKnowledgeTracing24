@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from EduKTM import DKT
 import torch
+from tqdm import tqdm
 
 class DKT_KTM():
     def __init__(self, num_steps=50, hidden_size=128, num_layers=1, lr=1e-4):
@@ -24,7 +25,7 @@ class DKT_KTM():
         df.sort_values(by=['user_xid','start_time'], inplace=True)
 
         seqs = []
-        for name, group in df.groupby(by='user_xid'):
+        for name, group in tqdm(df.groupby(by='user_xid')):
             group_len = group.shape[0]
             mod = 0 if group_len % self.num_steps == 0 else (self.num_steps - group_len % self.num_steps)
             oh = np.zeros(shape=[group_len + mod, self.vocab_size * 2])
