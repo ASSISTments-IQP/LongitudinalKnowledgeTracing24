@@ -36,9 +36,9 @@ class DKT_KTM():
                 col_idx = found_vocab if corr == 0 else found_vocab + self.vocab_size
                 oh[i][col_idx] = 1
                 i += 1
-            seqs.append(oh)
+            seqs = np.append(seqs, oh)
 
-        return np.array(seqs).reshape(-1, self.num_steps, 2 * self.vocab_size)
+        return seqs.reshape(-1, self.num_steps, 2 * self.vocab_size)
 
     def fit(self, train_data, num_epochs=3):
         raw_q_array = self.preprocess(train_data, True)
