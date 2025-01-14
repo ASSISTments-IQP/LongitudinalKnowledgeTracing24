@@ -31,7 +31,7 @@ class DKT_KTM():
             i = 0
             for idx, row in group.iterrows():
                 skill = row['skill_id']
-                corr = row['correct']
+                corr = row['discrete_score']
                 found_vocab = self.check_vocab(skill)
                 col_idx = found_vocab if corr == 0 else found_vocab + self.vocab_size
                 oh[i][col_idx] = 1
@@ -59,8 +59,8 @@ if __name__ == '__main__':
     print(torch.cuda.is_available())
     torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    train = pd.read_csv('../Data/23-24/sample1.csv')
-    test = pd.read_csv('../Data/23-24/sample1.csv')
+    train = pd.read_csv('../Data/samples/23-24/sample1.csv')
+    test = pd.read_csv('../Data/samples/23-24/sample1.csv')
 
     model = DKT_KTM(num_steps=10)
     print('Fitting now')

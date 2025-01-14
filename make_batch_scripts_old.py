@@ -7,7 +7,7 @@ if __name__ == '__main__':
 	for m in models:
 		for y in years:
 			for f in fold_nums:
-				with open('./within_year_temp.sh.sh', 'rt') as fin:
+				with open('./within_year_temp.sh', 'rt') as fin:
 					with open (f'./job_start_scripts/tf_{m}_{y}_{f}_wy.sh', 'wt') as fout:
 						for line in fin:
 							line = line.replace('MODEL_TYPE', m)
