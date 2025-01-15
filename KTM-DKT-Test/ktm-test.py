@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 from EduKTM import DKT
 import torch
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 class DKT_KTM():
-    def __init__(self, num_steps=50, hidden_size=128, num_layers=1, lr=1e-4):
+    def __init__(self, batch_size=64, num_steps=50, hidden_size=128, num_layers=1, lr=1e-4):
         self.vocab = []
         self.vocab_size = 0
         self.enc_dict = {}
@@ -13,6 +14,7 @@ class DKT_KTM():
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.lr = lr
+        self.batch_size = batch_size
         self.model = None
 
     def preprocess(self, df, fitting=False):
@@ -38,9 +40,11 @@ class DKT_KTM():
                 oh[i][col_idx] = 1
                 i += 1
             seqs = np.append(seqs, oh)
-            print(seqs.shape)
 
-        return seqs.reshape(-1, self.num_steps, 2 * self.vocab_size)
+        full_data = torch.FloatTensor(seqs.reshape(-1, self.num_steps, 2 * self.vocab_size))
+        d_l = DataLoader(full_data, batch_size=self.batch_size)
+        return d_l
+
 
     def fit(self, train_data, num_epochs=3):
         raw_q_array = self.preprocess(train_data, True)
@@ -62,9 +66,9 @@ if __name__ == '__main__':
     torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     train = pd.read_csv('../Data/samples/23-24/sample1.csv')
-    test = pd.read_csv('../Data/samples/23-24/sample1.csv')
+    test = pd.read_csv('../Data/samples/23-24/sample2.csv')
 
-    model = DKT_KTM(num_steps=10)
+    model = DKT_KTM(num_steps=50)
     print('Fitting now')
     print(model.fit(train))
     print('Training finished. eval')
