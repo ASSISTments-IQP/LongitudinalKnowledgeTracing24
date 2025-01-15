@@ -9,10 +9,11 @@ from tqdm import tqdm
 import os
 from torch import nn
 from torch.autograd import Variable
+from torch.utils.viz._cycles import warn_tensor_cycles
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score
 
-
+warn_tensor_cycles()
 
 class Net(nn.Module):
     def __init__(self, num_questions, hidden_size, num_layers, dropout_rate):
