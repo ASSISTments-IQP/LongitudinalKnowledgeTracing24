@@ -105,6 +105,7 @@ class DKT:
                     all_pred = torch.cat([all_pred, pred])
                     all_target = torch.cat([all_target, truth.float()])
                 del batch
+                torch.cuda.empty_cache()
 
             loss = loss_function(all_pred, all_target)
             # back propagation
