@@ -94,7 +94,8 @@ class DKT:
         optimizer = torch.optim.Adam(self.dkt_model.parameters(), lr=self.lr, weight_decay=self.reg_lambda)
 
         for e in range(num_epochs):
-            all_pred, all_target = torch.Tensor([]), torch.Tensor([])
+            all_pred, all_target = torch.Tensor([]).to(self.device), torch.Tensor([]).to(self.device)
+
             for batch in tqdm(train_data, "Epoch %s" % e):
                 batch = batch.to(self.device)
                 integrated_pred = self.dkt_model(batch)
