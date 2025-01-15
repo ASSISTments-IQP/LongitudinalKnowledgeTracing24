@@ -39,8 +39,9 @@ class DKT_KTM():
                 col_idx = found_vocab if corr == 0 else found_vocab + self.vocab_size
                 oh[i][col_idx] = 1
                 i += 1
-            seqs = np.append(seqs, oh)
+            seqs.append(oh)
 
+        seqs = np.concatenate(seqs)
         full_data = torch.FloatTensor(seqs.reshape(-1, self.num_steps, 2 * self.vocab_size))
         d_l = DataLoader(full_data, batch_size=self.batch_size)
         return d_l
