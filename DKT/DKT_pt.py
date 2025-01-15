@@ -96,7 +96,9 @@ class DKT:
         for e in range(num_epochs):
             all_pred, all_target = torch.Tensor([]), torch.Tensor([])
             for batch in tqdm(train_data, "Epoch %s" % e):
+                print(self.device)
                 batch.to(self.device)
+                print(batch.device)
                 integrated_pred = self.dkt_model(batch)
                 batch_size = batch.shape[0]
                 for student in range(batch_size):
