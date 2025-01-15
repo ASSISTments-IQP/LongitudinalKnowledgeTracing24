@@ -53,7 +53,7 @@ class DKT:
         self.reg_lambda = reg_lambda
         self.dkt_model = None
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
-        self.device = (torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def preprocess(self, df, fitting=False):
         if fitting:
@@ -88,7 +88,6 @@ class DKT:
         print(torch.cuda.is_available())
         td_orig = train_data.copy()
         train_data = self.preprocess(train_data, fitting=True)
-        train_data.to(self.device)
         self.dkt_model = Net(self.vocab_size, self.hidden_size, self.num_layers, self.dropout_rate)
         self.dkt_model.to(self.device)
         loss_function = nn.BCELoss()
@@ -97,9 +96,7 @@ class DKT:
         for e in range(num_epochs):
             all_pred, all_target = torch.Tensor([]), torch.Tensor([])
             for batch in tqdm(train_data, "Epoch %s" % e):
-                print(self.device)
-                # batch.to(self.device)
-                print(batch.device)
+                batch.to(self.device)
                 integrated_pred = self.dkt_model(batch)
                 batch_size = batch.shape[0]
                 for student in range(batch_size):
