@@ -36,6 +36,7 @@ def process_raw_pred(raw_question_matrix, raw_pred, num_questions: int) -> tuple
     pred = raw_pred[: length]
     pred = pred.gather(1, questions.view(-1, 1)).flatten()
     truth = torch.nonzero(raw_question_matrix)[1:, 1] // num_questions
+    del questions
     return pred, truth
 
 
@@ -107,6 +108,7 @@ class DKT:
                     all_target = torch.cat([all_target, truth.to('cpu').float()])
                 del batch, integrated_pred, pred, truth
 
+            print(torch.cuda.memory_summary())
             loss = loss_function(all_pred.to(self.device), all_target.to(self.device))
             # back propagation
             optimizer.zero_grad()
