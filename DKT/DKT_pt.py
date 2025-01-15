@@ -105,8 +105,7 @@ class DKT:
                     pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
                     all_pred = torch.cat([all_pred, pred])
                     all_target = torch.cat([all_target, truth.float()])
-                del batch
-                torch.cuda.empty_cache()
+                del batch, integrated_pred, pred, truth
 
             loss = loss_function(all_pred, all_target)
             # back propagation
@@ -116,14 +115,14 @@ class DKT:
 
             print("[Epoch %d] LogisticLoss: %.6f" % (e, loss))
             del all_pred, loss, all_target
-            
+
         return self.evaluate(td_orig)
 
     def evaluate(self, test_data) -> float:
         test_data = self.preprocess(test_data)
         self.dkt_model.eval()
-        y_pred = torch.Tensor([])
-        y_truth = torch.Tensor([])
+        y_pred = torch.Tensor([]).to(self.device)
+        y_truth = torch.Tensor([]).to(self.device)
         for batch in tqdm(test_data, "evaluating"):
             batch.to(self.device)
             integrated_pred = self.dkt_model(batch)
@@ -132,6 +131,7 @@ class DKT:
                 pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
                 y_pred = torch.cat([y_pred, pred])
                 y_truth = torch.cat([y_truth, truth])
+            del batch, integrated_pred, pred, truth
 
         return roc_auc_score(y_truth.detach().numpy(), y_pred.detach().numpy())
 
