@@ -40,13 +40,13 @@ def process_raw_pred(raw_question_matrix, raw_pred, num_questions: int) -> tuple
 
 
 class DKT:
-    def __init__(self, batch_size=64, num_steps=50, hidden_size=128, num_layers=1, lr=1e-4, dropout_rate=0.33, reg_lambda=1e-3, gpu_num=0):
+    def __init__(self, batch_size=64, num_steps=50, hidden_size=128, lr=1e-4, dropout_rate=0.33, reg_lambda=1e-3, gpu_num=0):
         self.vocab = []
         self.vocab_size = 0
         self.enc_dict = {}
         self.num_steps = num_steps
         self.hidden_size = hidden_size
-        self.num_layers = num_layers
+        self.num_layers = 1
         self.lr = lr
         self.batch_size = batch_size
         self.dropout_rate = dropout_rate
