@@ -88,6 +88,7 @@ class DKT:
         print(torch.cuda.is_available())
         td_orig = train_data.copy()
         train_data = self.preprocess(train_data, fitting=True)
+        train_data.to(self.device)
         self.dkt_model = Net(self.vocab_size, self.hidden_size, self.num_layers, self.dropout_rate)
         self.dkt_model.to(self.device)
         loss_function = nn.BCELoss()
@@ -97,7 +98,7 @@ class DKT:
             all_pred, all_target = torch.Tensor([]), torch.Tensor([])
             for batch in tqdm(train_data, "Epoch %s" % e):
                 print(self.device)
-                batch.to(self.device)
+                # batch.to(self.device)
                 print(batch.device)
                 integrated_pred = self.dkt_model(batch)
                 batch_size = batch.shape[0]
