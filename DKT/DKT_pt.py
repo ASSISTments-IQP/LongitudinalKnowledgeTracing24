@@ -53,6 +53,7 @@ class DKT:
         self.reg_lambda = reg_lambda
         self.dkt_model = None
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
+        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def preprocess(self, df, fitting=False):
@@ -104,7 +105,6 @@ class DKT:
                     pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
                     all_pred = torch.cat([all_pred, pred])
                     all_target = torch.cat([all_target, truth.float()])
-                print(torch.cuda.memory_summary(self.device))
                 del batch
                 torch.cuda.empty_cache()
 
@@ -115,7 +115,9 @@ class DKT:
             optimizer.step()
 
             print("[Epoch %d] LogisticLoss: %.6f" % (e, loss))
-            return self.evaluate(td_orig)
+            del all_pred, loss, all_target
+            
+        return self.evaluate(td_orig)
 
     def evaluate(self, test_data) -> float:
         test_data = self.preprocess(test_data)
