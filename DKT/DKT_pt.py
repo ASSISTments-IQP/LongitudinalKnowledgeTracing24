@@ -85,6 +85,7 @@ class DKT:
         return d_l
 
     def fit(self, train_data, num_epochs) -> ...:
+        print(torch.cuda.is_available())
         td_orig = train_data.copy()
         train_data = self.preprocess(train_data, fitting=True)
         self.dkt_model = Net(self.vocab_size, self.hidden_size, self.num_layers, self.dropout_rate)
