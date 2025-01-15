@@ -28,7 +28,7 @@ class DKT_KTM():
         for name, group in tqdm(df.groupby(by='user_xid')):
             group_len = group.shape[0]
             mod = 0 if group_len % self.num_steps == 0 else (self.num_steps - group_len % self.num_steps)
-            oh = np.zeros(shape=[group_len + mod, self.vocab_size * 2])
+            oh = np.zeros(shape=(group_len + mod, self.vocab_size * 2))
             i = 0
             for idx, row in group.iterrows():
                 skill = row['skill_id']
