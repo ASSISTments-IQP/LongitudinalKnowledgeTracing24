@@ -6,7 +6,7 @@ from multiprocessing import Pool
 
 
 def run_one_fold(data, test_fold, ns, bs, dm, dr, lr, rl, ne):
-    print((ns,bs,dm,dr,lr))
+    print((ns,bs,dm,dr,lr,rl,ne))
     test_data = data.pop(test_fold)
     train_data = pd.concat(data)
 
