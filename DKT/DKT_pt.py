@@ -104,6 +104,7 @@ class DKT:
                     pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
                     all_pred = torch.cat([all_pred, pred])
                     all_target = torch.cat([all_target, truth.float()])
+                del batch
 
             loss = loss_function(all_pred, all_target)
             # back propagation
