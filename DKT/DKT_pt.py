@@ -81,7 +81,7 @@ class DKT:
             seqs.append(oh)
 
         seqs = np.concatenate(seqs)
-        full_data = torch.HalfTensor(seqs.reshape(-1, self.num_steps, 2 * self.vocab_size))
+        full_data = torch.FloatTensor(seqs.reshape(-1, self.num_steps, 2 * self.vocab_size))
         d_l = DataLoader(full_data, batch_size=self.batch_size)
         return d_l
 
