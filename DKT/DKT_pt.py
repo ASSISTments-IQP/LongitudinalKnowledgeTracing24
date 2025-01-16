@@ -93,7 +93,7 @@ class DKT:
         optimizer = torch.optim.Adam(self.dkt_model.parameters(), lr=self.lr, weight_decay=self.reg_lambda)
 
         for e in range(num_epochs):
-            all_pred, all_target = torch.Tensor([]), torch.Tensor([])
+            all_pred, all_target = [], []
 
             i = 0
             for batch in tqdm(train_data, "Epoch %s" % e):
@@ -102,14 +102,16 @@ class DKT:
                 batch_size = batch.shape[0]
                 for student in range(batch_size):
                     pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
-                    all_pred = torch.cat([all_pred, pred.to('cpu')])
-                    all_target = torch.cat([all_target, truth.to('cpu').float()])
+                    all_pred.append(pred.to('cpu'))
+                    all_target.append(truth.to('cpu').float())
                 del batch, integrated_pred, pred, truth
                 if i > 50:
                     gc.collect()
                     i = 0
 
             print(torch.cuda.memory_summary())
+            all_pred = torch.cat(all_pred)
+            all_target = torch.cat(all_target)
             loss = loss_function(all_pred.to(self.device), all_target.to(self.device))
             # back propagation
             optimizer.zero_grad()
