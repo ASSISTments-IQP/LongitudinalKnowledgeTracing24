@@ -102,8 +102,8 @@ class DKT:
                 batch_size = batch.shape[0]
                 for student in range(batch_size):
                     pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
-                    all_pred.append(pred)
-                    all_target.append(truth.float())
+                    all_pred.append(pred.to('cpu'))
+                    all_target.append(truth.to('cpu').float())
                 del batch, integrated_pred, pred, truth
                 if i > 50:
                     gc.collect()
@@ -131,14 +131,14 @@ class DKT:
             batch_size = batch.shape[0]
             for student in range(batch_size):
                 pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
-                y_pred.append(pred)
-                y_truth.append(truth.float())
+                y_pred.append(pred.to('cpu'))
+                y_truth.append(truth.to('cpu').float())
             del batch, integrated_pred, pred, truth
 
         y_pred = torch.cat(y_pred)
         y_truth = torch.cat(y_truth)
 
-        return roc_auc_score(y_truth.detach().numpy(), y_pred.detach().numpy())
+        return roc_auc_score(y_truth.numpy(), y_pred.numpy())
 
     def check_vocab(self, key):
         return self.enc_dict.get(key, 0)
