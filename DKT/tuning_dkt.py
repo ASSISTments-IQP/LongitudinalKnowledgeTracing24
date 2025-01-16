@@ -32,13 +32,13 @@ def objective(trial):
     for i in range(4):
         data.append(df[df['assignment_log_id'].isin(folds[i])].copy())
 
-    num_steps = trial.suggest_int('num_steps', 20, 100, step = 10)
-    batch_size = trial.suggest_int('batch_size', 16, 64, step=8)
-    d_model = trial.suggest_int('d_model', 64, 512, step = 32)
+    num_steps = trial.suggest_int('num_steps', 20, 50, step = 10)
+    batch_size = trial.suggest_int('batch_size', 16, 32, step=8)
+    d_model = trial.suggest_int('d_model', 64, 256, step = 16)
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
-    learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-2, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-1, log=True)
     reg_lambda = trial.suggest_float('reg_lambda', 1e-4, 1, log=True)
-    num_epochs = trial.suggest_int('num_epochs', 1, 5)
+    num_epochs = trial.suggest_int('num_epochs', 1, 10)
 
     res = []
     args = zip([data] * 4, range(4), [num_steps] * 4, [batch_size] * 4, [d_model] * 4, [dropout_rate] * 4, [learning_rate] * 4, [reg_lambda] * 4, [num_epochs] * 4)
