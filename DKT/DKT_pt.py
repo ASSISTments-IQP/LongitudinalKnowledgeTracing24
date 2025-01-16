@@ -138,7 +138,7 @@ class DKT:
         y_pred = torch.cat(y_pred)
         y_truth = torch.cat(y_truth)
 
-        return roc_auc_score(y_truth.numpy(), y_pred.numpy())
+        return roc_auc_score(y_truth.detach().numpy(), y_pred.detach().numpy())
 
     def check_vocab(self, key):
         return self.enc_dict.get(key, 0)
