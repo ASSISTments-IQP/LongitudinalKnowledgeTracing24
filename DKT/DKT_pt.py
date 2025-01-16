@@ -12,17 +12,15 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score
 
 class Net(nn.Module):
-    def __init__(self, num_questions, hidden_size, num_layers, dropout_rate):
+    def __init__(self, num_questions, hidden_size, num_layers):
         super(Net, self).__init__()
         self.hidden_dim = hidden_size
         self.layer_dim = num_layers
         self.lstm = nn.LSTM(num_questions * 2, hidden_size, num_layers, batch_first=True)
-        self.dr = nn.Dropout(dropout_rate)
         self.fc = nn.Linear(self.hidden_dim, num_questions)
 
     def forward(self, x):
         out, _ = self.lstm(x)
-        out = self.dr(out)
         res = torch.sigmoid(self.fc(out))
         return res
 
@@ -38,7 +36,7 @@ def process_raw_pred(raw_question_matrix, raw_pred, num_questions: int) -> tuple
 
 
 class DKT:
-    def __init__(self, batch_size=64, num_steps=50, hidden_size=128, lr=1e-4, dropout_rate=0.33, reg_lambda=1e-3, gpu_num=0):
+    def __init__(self, batch_size=64, num_steps=50, hidden_size=128, lr=1e-4, gpu_num=0):
         self.vocab = []
         self.vocab_size = 0
         self.enc_dict = {}
@@ -47,8 +45,6 @@ class DKT:
         self.num_layers = 1
         self.lr = lr
         self.batch_size = batch_size
-        self.dropout_rate = dropout_rate
-        self.reg_lambda = reg_lambda
         self.dkt_model = None
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
         os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
@@ -86,10 +82,10 @@ class DKT:
     def fit(self, train_data, num_epochs) -> ...:
         print(torch.cuda.is_available())
         train_data = self.preprocess(train_data, fitting=True)
-        self.dkt_model = Net(self.vocab_size, self.hidden_size, self.num_layers, self.dropout_rate)
+        self.dkt_model = Net(self.vocab_size, self.hidden_size, self.num_layers)
         self.dkt_model.to(self.device)
         loss_function = nn.BCELoss()
-        optimizer = torch.optim.Adam(self.dkt_model.parameters(), lr=self.lr, weight_decay=self.reg_lambda)
+        optimizer = torch.optim.Adam(self.dkt_model.parameters(), lr=self.lr)
 
         for e in range(num_epochs):
             all_pred, all_target = [], []
