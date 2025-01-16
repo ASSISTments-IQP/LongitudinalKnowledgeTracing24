@@ -108,8 +108,6 @@ class DKT:
                 if i > 50:
                     gc.collect()
                     i = 0
-
-            print(torch.cuda.memory_summary())
             all_pred = torch.cat(all_pred)
             all_target = torch.cat(all_target)
             loss = loss_function(all_pred.to(self.device), all_target.to(self.device))
@@ -125,19 +123,22 @@ class DKT:
     def evaluate(self, test_data) -> float:
         test_data = self.preprocess(test_data)
         self.dkt_model.eval()
-        y_pred = torch.Tensor([]).to(self.device)
-        y_truth = torch.Tensor([]).to(self.device)
+        y_pred = []
+        y_truth = []
         for batch in tqdm(test_data, "evaluating"):
-            batch.to(self.device)
+            batch = batch.to(self.device)
             integrated_pred = self.dkt_model(batch)
             batch_size = batch.shape[0]
             for student in range(batch_size):
                 pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
-                y_pred = torch.cat([y_pred, pred])
-                y_truth = torch.cat([y_truth, truth])
+                y_pred.append(pred.to('cpu'))
+                y_truth.append(truth.to('cpu').float())
             del batch, integrated_pred, pred, truth
 
-        return roc_auc_score(y_truth.detach().numpy(), y_pred.detach().numpy())
+        y_pred = torch.cat(y_pred)
+        y_truth = torch.cat(y_truth)
+
+        return roc_auc_score(y_truth.numpy(), y_pred.numpy())
 
     def check_vocab(self, key):
         return self.enc_dict.get(key, 0)
