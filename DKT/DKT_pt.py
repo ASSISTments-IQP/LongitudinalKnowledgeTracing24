@@ -2,18 +2,14 @@
 # ORIGINAL AUTHOR 2021/4/23 @ zengxiaonan
 
 import logging
-
+import gc
 import numpy as np
 import torch
 from tqdm import tqdm
 import os
 from torch import nn
-from torch.autograd import Variable
-from torch.utils.viz._cycles import warn_tensor_cycles
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score
-
-warn_tensor_cycles()
 
 class Net(nn.Module):
     def __init__(self, num_questions, hidden_size, num_layers, dropout_rate):
@@ -99,6 +95,7 @@ class DKT:
         for e in range(num_epochs):
             all_pred, all_target = torch.Tensor([]), torch.Tensor([])
 
+            i = 0
             for batch in tqdm(train_data, "Epoch %s" % e):
                 batch = batch.to(self.device)
                 integrated_pred = self.dkt_model(batch)
@@ -108,6 +105,9 @@ class DKT:
                     all_pred = torch.cat([all_pred, pred.to('cpu')])
                     all_target = torch.cat([all_target, truth.to('cpu').float()])
                 del batch, integrated_pred, pred, truth
+                if i > 50:
+                    gc.collect()
+                    i = 0
 
             print(torch.cuda.memory_summary())
             loss = loss_function(all_pred.to(self.device), all_target.to(self.device))
