@@ -120,7 +120,7 @@ class DKT:
 
             print("[Epoch %d] LogisticLoss: %.6f" % (e, loss))
 
-        return roc_auc_score(all_target.detatch().numpy(), all_pred.detatch().numpy())
+        return roc_auc_score(all_target.detach().numpy(), all_pred.detach().numpy())
 
     def evaluate(self, test_data) -> float:
         test_data = self.preprocess(test_data)
