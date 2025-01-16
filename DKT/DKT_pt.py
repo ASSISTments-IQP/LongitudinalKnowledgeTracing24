@@ -85,7 +85,6 @@ class DKT:
 
     def fit(self, train_data, num_epochs) -> ...:
         print(torch.cuda.is_available())
-        td_orig = train_data.copy()
         train_data = self.preprocess(train_data, fitting=True)
         self.dkt_model = Net(self.vocab_size, self.hidden_size, self.num_layers, self.dropout_rate)
         self.dkt_model.to(self.device)
@@ -104,8 +103,9 @@ class DKT:
                     pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
                     all_pred.append(pred.to('cpu'))
                     all_target.append(truth.to('cpu').float())
-                del batch, integrated_pred, pred, truth
-                if i > 50:
+                    del pred, truth
+                del batch, integrated_pred
+                if i > 100:
                     gc.collect()
                     i = 0
             all_pred = torch.cat(all_pred)
@@ -133,7 +133,8 @@ class DKT:
                 pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
                 y_pred.append(pred.to('cpu'))
                 y_truth.append(truth.to('cpu').float())
-            del batch, integrated_pred, pred, truth
+                del pred, truth
+            del batch, integrated_pred
 
         y_pred = torch.cat(y_pred)
         y_truth = torch.cat(y_truth)
