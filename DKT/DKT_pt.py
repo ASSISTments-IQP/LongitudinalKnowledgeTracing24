@@ -191,7 +191,7 @@ class DKT:
             self.vocab_size = len(self.vocab) + 2
             # print(f'self.vocab_size: {self.vocab_size}')
             
-            self.embedding_dim = max(10, math.ceil(math.log(self.vocab_size)))
+            self.embedding_dim = min(50, (self.vocab_size + 1) // 2)
             # print(f'self.embedding_dim: {self.embedding_dim}')
 
             self.vocab_to_idx = {token: idx + 2 for idx, token in enumerate(self.vocab)}
