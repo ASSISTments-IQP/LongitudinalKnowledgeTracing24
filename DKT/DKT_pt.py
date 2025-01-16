@@ -119,9 +119,8 @@ class DKT:
             optimizer.step()
 
             print("[Epoch %d] LogisticLoss: %.6f" % (e, loss))
-            del all_pred, loss, all_target
 
-        return self.evaluate(td_orig)
+        return roc_auc_score(all_target.detatch().numpy(), all_pred.detatch().numpy())
 
     def evaluate(self, test_data) -> float:
         test_data = self.preprocess(test_data)
