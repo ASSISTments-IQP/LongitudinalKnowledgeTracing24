@@ -9,4 +9,3 @@ keras
 hmmlearn
 matplotlib
 seaborn
-eduktm
