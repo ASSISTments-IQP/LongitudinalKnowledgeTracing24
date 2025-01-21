@@ -8,7 +8,7 @@ if __name__ == '__main__':
 		for y in years:
 			for f in fold_nums:
 				with open('./within_year_temp.sh', 'rt') as fin:
-					with open (f'./job_start_scripts/tf_{m}_{y}_{f}_wy.sh', 'wt') as fout:
+					with open (f'./job_start_scripts/{m}_{y}_{f}_wy.sh', 'wt') as fout:
 						for line in fin:
 							line = line.replace('MODEL_TYPE', m)
 							line = line.replace('FOLD_NUM',str(f))
@@ -17,7 +17,7 @@ if __name__ == '__main__':
 			if y != '23-24':
 				for s in sample_nums:
 					with open('./cross_year_temp.sh', 'rt') as fin:
-						with open(f'./job_start_scripts/tf_{m}_{y}_{s}_cy.sh', 'wt') as fout:
+						with open(f'./job_start_scripts/{m}_{y}_{s}_cy.sh', 'wt') as fout:
 							for line in fin:
 								line = line.replace('MODEL_TYPE', m)
 								line = line.replace('SAMPLE_NUM', str(s))

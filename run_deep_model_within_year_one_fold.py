@@ -1,5 +1,5 @@
 # from sakt.SAKT_model import SAKTModel
-from DKT.DKT_Model import DKT
+from DKT.DKT_pt import DKT
 from tqdm import tqdm
 import pandas as pd
 import sys, json
@@ -15,14 +15,9 @@ def run_one_fold(val_fold, data, model_type, year):
             train_list.append(val)
 
     train = pd.concat(train_list)
+    model = DKT(32, 40, 256, 3e-2)
 
-    if model_type == 'SAKT':
-        # model = SAKTModel()
-        pass
-    if model_type == 'DKT':
-        model = DKT()
-
-    model.fit(train, num_epochs=3)
+    model.fit(train, num_epochs=10)
     print(f"{model_type} fit for {year} with hold-out fold {val_fold}")
     return model.evaluate(validation)
 
@@ -66,6 +61,6 @@ if __name__ == '__main__':
         year: {holdout_fold_num: run_one_fold(holdout_fold_num, sample_dict[year], model_type, year)}
     }
 
-    with open(f'./wy_{model_type}_{year}_{holdout_fold_num}.json','w') as fout:
+    with open(f'./wy_DKT_{year}_{holdout_fold_num}.json','w') as fout:
         json.dump(res,fout)
         fout.close()

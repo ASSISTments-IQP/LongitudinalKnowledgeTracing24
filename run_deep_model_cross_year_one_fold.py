@@ -1,9 +1,4 @@
-from PFA.PFA_Model import PFA
-from bkt.BKT_Model import BKTModel
-# from sakt.SAKT_model import SAKTModel
-from DKT.DKT_Model import DKT
-from multiprocessing import Pool
-from tqdm import tqdm
+from DKT.DKT_pt import DKT
 import pandas as pd
 import sys, json
 
@@ -11,11 +6,8 @@ model_list = ['DKT', 'SAKT']
 
 
 def run_one_sample(train, test_samps, model_type):
-	if model_type == 'SAKT':
-		# model = SAKTModel()
-		pass
-	if model_type == 'DKT':
-		model = DKT()
+
+	model = DKT(32, 40, 256, 3e-2)
 	model.fit(train)
 	res = {}
 	for year, samp in test_samps.items():
