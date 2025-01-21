@@ -6,7 +6,6 @@
 #SBATCH -p short
 #SBATCH -t 24:00:00
 #SBATCH --gres=gpu:1
-module load python3.12.7
 module load cuda
 source ~/myenvs/cuda-torch/bin/activate
 python3 ../run_deep_model_within_year_one_fold.py MODEL_TYPE YEAR FOLD_NUM
