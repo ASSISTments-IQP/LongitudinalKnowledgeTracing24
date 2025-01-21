@@ -8,7 +8,7 @@ model_list = ['DKT', 'SAKT']
 def run_one_sample(train, test_samps, model_type):
 
 	model = DKT(32, 40, 256, 3e-2)
-	model.fit(train)
+	model.fit(train, 10)
 	res = {}
 	for year, samp in test_samps.items():
 		res[year] = model.evaluate(samp)
