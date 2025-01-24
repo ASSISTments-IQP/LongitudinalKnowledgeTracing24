@@ -209,6 +209,9 @@ if __name__ == '__main__':
 
 	for key0, val_d in sample_dict_all.items():
 		for key, val in val_d.items():
+			valdcopy = val_d.copy()
+			valdcopy.pop(key)
+			val = pd.concat(valdcopy.values())
 			res.append(['BKT', (len(val.skill_id.unique()) + 1) * 5])
 			res.append(['PFA', (len(val.skill_id.unique()) + 1) * 3 + 1])
 			dummy_dkt = DKTNet((len(val.skill_id.unique()) + 1) * 2, 256, 1)
