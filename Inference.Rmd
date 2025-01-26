@@ -5,16 +5,13 @@ output: html_document
 
 ```{r}
 library(ggplot2)
+library(ggh4x)
 library(sandwich)
 library(lmtest)
+library(lm_robust)
 data = read.csv('./Data/results_pt_2.csv')
 ```
 
-```{r}
-bigmodLogit = lm(qlogis(auc)~years_between_train_eval*model, data=data)
-bigmod = lm(auc~years_between_train_eval*model, data=data)
-coeftest(bigmod, .vcov=vcovHC)
-```
 
 ```{r}
 library(dplyr)
@@ -28,11 +25,95 @@ data%>%filter(model=="BKT")%>%group_by(model,years_between_train_eval)%>%summari
 
 data%>%ggplot(aes(years_between_train_eval,auc))+geom_jitter()+geom_smooth(se=FALSE,color="red")+
   geom_smooth(method="lm",se=FALSE,color="blue")+facet_wrap(~model,scales="free")
-
-plot(bigmod, which=c(1,3))
-pred <- predict(bigmod)
-ggplot(data,aes(years_between_train_eval,auc,color=model))+geom_point(alpha=0.2)+
-  geom_line(aes(y=pred))
 ```
+
+
+```{r}
+mods = unique(data['model'])$model
+pvals = list()
+for (m in mods) {
+  sub_df = data[data['model'] == m,]
+  print(m)
+  test = cor.test(sub_df$years_between_train_eval,sub_df$auc,method='spearman')
+  print(test)
+  pvals = append(pvals,test$p.value)
+}
+```
+
+```{r}
+overall_test = cor.test(data$years_between_train_eval,data$auc,method='spearman')
+overall_test
+pvals = append(pvals,overall_test$p.value)
+p.adjust(pvals,'holm')
+```
+
+
+```{r}
+data%>%group_by(model,years_between_train_eval)%>%summarize(auc_m=mean(auc),auc_low=t.test(auc)$conf.int[1], auc_hi=t.test(auc)$conf.int[2])%>%ggplot(aes(years_between_train_eval,auc_m))+#,color=model))
+  geom_point()+geom_line()+geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.2))+#geom_smooth(se=FALSE)+
+  facet_wrap(~model,scales="free")
+
+t.test(data$auc)$conf.int[2]
+
+int_tib = data%>%group_by(model,years_between_train_eval)%>%summarize(auc_m=mean(auc),auc_low=t.test(auc)$conf.int[1], auc_hi=t.test(auc)$conf.int[2])
+```
+```{r}
+a_des = "
+  AABBB
+  CCDDD
+  #EEE#
+"
+
+plo = ggplot(int_tib, aes(x=years_between_train_eval,y=auc_m))+
+  geom_point(aes(color=model))+geom_line(aes(color=model))+
+  geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.2,color=model))+
+  facet_wrap(~model,scales='free',ncol=2)+
+  #ggh4x::facet_manual(~model,scales="free",design=a_des)+
+  theme(legend.position='none')+
+  labs(y='AUC',x='Years between Training & Evaluation Year')
+
+ggsave(plo,filename='./diff_with_error_bars.png',width=4,height=5)
+```
+
+```{r}
+ggplot(int_tib, aes(x=years_between_train_eval,y=auc_m))+
+  geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.1,color=model))+
+  geom_point(aes(color=model))+geom_line(aes(color=model))
+```
+
+
+```{r}
+param_nums = read.csv('./Data/param_numbers.csv')
+param_nums%>%group_by(model)%>%summarize(avg_params=mean(num_trainable_params))
+```
+
+```{r}
+sakt_e = data[data['model'] == 'SAKT-E',]
+sakt_kc = data[data['model'] == 'SAKT-KC',]
+
+all_sakt = rbind(sakt_e,sakt_kc)
+
+summary(sakt_mod)
+
+sakt_mod = lm(auc~years_between_train_eval*model,data=all_sakt)
+coeftest(sakt_mod,vcov.=vcovHC)
+plot(sakt_mod,which=c(1,3))
+
+pred <- predict(sakt_mod)
+plo1=ggplot(all_sakt,aes(years_between_train_eval,auc,color=model))+geom_point(alpha=0.2)+
+  geom_line(aes(y=pred))+
+  labs(y='AUC',x='Years between Training & Evaluation Year')+
+  scale_color_discrete(name="Model")
+
+ggsave(plo1,filename='./sakt_line.png',width=4,height=3)
+  
+```
+
+
+
+
+
+
+
 
 
