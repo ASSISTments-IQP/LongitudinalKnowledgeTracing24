@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -N 1
-#SBATCH -n 6
+#SBATCH -n 11
 #SBATCH --mem=128g
 #SBATCH -J "MODEL_TYPEWYYEAR"
 #SBATCH -o "MODEL_TYPEWYYEAR.out"

@@ -44,11 +44,10 @@ if __name__ == '__main__':
 
     print(f'Loading year samples for year {train_year}')
     fold_dict = {}
-    j = 0
     for i in range(1, 11):
         s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
 
-        fold_dict[j] = s1
+        fold_dict[i] = s1
 
     print('Samples loaded')
 
