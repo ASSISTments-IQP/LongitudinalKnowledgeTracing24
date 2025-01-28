@@ -40,7 +40,7 @@ if __name__ == '__main__':
         raise Exception(f"Invalid model type specified, model type must be one of {str(model_list)[1:-1]}")
     elif year not in year_list:
         raise Exception(f'Invalid year specified, model year must be one of {str(year_list)[1:-1]}')
-    elif holdout_fold_num not in range(5):
+    elif holdout_fold_num not in range(1,11):
         raise Exception(f"Invalid fold number provided")
 
     sample_dict = {}
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     for y in tqdm(year_list):
         y_dict = {}
         for i in range(1, 11):
-            s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
+            s1 = pd.read_csv(f'../Data/samples/{y}/sample{i}.csv')
             y_dict[i] = s1
 
         sample_dict[y] = y_dict
