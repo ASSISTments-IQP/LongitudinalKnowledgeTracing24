@@ -13,13 +13,13 @@ def run_one_fold(val_fold, data, model_type, year):
 
     if model_type == 'DKT':
         model = DKT(32, 40, 256, 3e-2)
-        num_epochs = 50
+        num_epochs = 300
     elif model_type == 'SAKT-E':
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,feature_col='old_problem_id')
-        num_epochs = 25
+        num_epochs = 100
     else:
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,feature_col='skill_id')
-        num_epochs = 25
+        num_epochs = 100
 
     model.fit(train, num_epochs=num_epochs)
     print(f"{model_type} fit for {year} with hold-out fold {val_fold}")
