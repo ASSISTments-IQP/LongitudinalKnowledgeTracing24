@@ -133,7 +133,7 @@ class SAKTModel(nn.Module):
     def compute_loss(self, predictions, targets):
         return self.loss_fn(predictions, targets)
 
-    def fit(self, df: pd.DataFrame, batch_size=64, num_epochs=5, lr=1e-3, patience=2, validation_split=0.1):
+    def fit(self, df: pd.DataFrame,  num_epochs=5, patience=5, validation_split=0.1):
         """
         Trains the model using the provided DataFrame.
 
@@ -198,7 +198,7 @@ class SAKTModel(nn.Module):
             val_auc, val_loss = self.evaluate_internal(val_loader)
             print(f"Validation loss: {val_loss:.4f}, AUC: {val_auc:.4f}")
 
-            if abs(prev_loss - train_loss) < 0.0005:
+            if abs(prev_loss - train_loss) < 1e-5:
                 epochs_without_improvement += 1
                 if epochs_without_improvement >= patience:
                     print("Early stopping triggered.")
