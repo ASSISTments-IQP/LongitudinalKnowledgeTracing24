@@ -114,7 +114,7 @@ class DKT:
             loss.backward()
             optimizer.step()
 
-            if abs(prev_loss - loss) < 0.005:
+            if abs(prev_loss - loss) < 0.0005:
                 pat_count += 1
                 if pat_count == 3:
                     print('Minimal improvement for 3 epochs, ending training')

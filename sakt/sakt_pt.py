@@ -198,7 +198,7 @@ class SAKTModel(nn.Module):
             val_auc, val_loss = self.evaluate_internal(val_loader)
             print(f"Validation loss: {val_loss:.4f}, AUC: {val_auc:.4f}")
 
-            if abs(prev_loss - train_loss) < 0.005:
+            if abs(prev_loss - train_loss) < 0.0005:
                 epochs_without_improvement += 1
                 if epochs_without_improvement >= patience:
                     print("Early stopping triggered.")
