@@ -1,41 +1,31 @@
 from PFA.PFA_Model import PFA
 from bkt.BKT_Model import BKTModel
-from sakt.sakt_pt import SAKTModel
-from DKT.DKT_pt import DKT
 from multiprocessing import Pool
 from tqdm import tqdm
 import pandas as pd
 import sys, json
-model_list = ['BKT','PFA','DKT-E','DKT-KC','SAKT-E','SAKT-KC']
+model_list = ['BKT','PFA']
 
 
 def run_cv_one_fold(data, test_fold_num, model_type):
-    test = data.pop(test_fold_num)
-    train = pd.concat(data.values())
-    needs_num_epochs = True
+    train = data.pop(test_fold_num)
+    test = pd.concat(data.values())
 
     if model_type == 'BKT':
-        needs_num_epochs = False
         model = BKTModel()
     if model_type == 'PFA':
-        needs_num_epochs = False
         model = PFA()
-    if model_type == 'DKT-KC':
-        num_epochs = 10
-        model = DKT(32, 40, 256, 3e-2,  gpu_num=test_fold_num)
-    if model_type == 'SAKT-E':
-        num_epochs = 6
-        model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=test_fold_num,feature_col='old_problem_id')  # UPDATE HYPERPARAMS LATER
-    if model_type == 'SAKT-KC':
-        num_epochs = 6
-        model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,gpu_num=test_fold_num,feature_col='skill_id')
- 
-    if needs_num_epochs:
-        model.fit(train, num_epochs)
-    else:
-        model.fit(train)
 
-    return model.evaluate(test), test_fold_num
+
+    model.fit(train)
+    eval_tup = model.evaluate(test)
+    res = {
+        'auc': eval_tup[0],
+        'll': eval_tup[1],
+        'f1': eval_tup[2]
+    }
+
+    return res, test_fold_num
 
 
 if __name__ == '__main__':
@@ -55,18 +45,16 @@ if __name__ == '__main__':
     print(f'Loading year samples for year {train_year}')
     fold_dict = {}
     j = 0
-    for i in range(1, 11, 2):
+    for i in range(1, 11):
         s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
-        s2 = pd.read_csv(f'../Data/samples/{train_year}/sample{i + 1}.csv')
 
-        fold_dict[j] = pd.concat([s1, s2], ignore_index=True)
-        j += 1
+        fold_dict[j] = s1
 
-    print('Samples loaded & processed into folds')
+    print('Samples loaded')
 
     res = {}
-    args = zip([fold_dict] * 5, range(5), [model_type] * 5)
-    with Pool(5) as p:
+    args = zip([fold_dict] * 10, range(1,11), [model_type] * 10)
+    with Pool(10) as p:
         for l in p.starmap(run_cv_one_fold, args):
             res[l[1]] = l[0]
 

@@ -8,24 +8,18 @@ model_list = ['DKT','SAKT-E','SAKT-KC']
 
 
 def run_one_fold(val_fold, data, model_type, year):
-    train_list = []
-    for key, val in data.items():
-        if key == val_fold:
-            validation = val
-        else:
-            train_list.append(val)
-
-    train = pd.concat(train_list)
+    train = data.pop(val_fold)
+    validation = pd.concat(data)
 
     if model_type == 'DKT':
         model = DKT(32, 40, 256, 3e-2)
-        num_epochs = 20
+        num_epochs = 30
     elif model_type == 'SAKT-E':
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,feature_col='old_problem_id')
-        num_epochs = 6
+        num_epochs = 15
     else:
         model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,feature_col='skill_id')
-        num_epochs = 6
+        num_epochs = 15
 
     model.fit(train, num_epochs=num_epochs)
     print(f"{model_type} fit for {year} with hold-out fold {val_fold}")
@@ -54,13 +48,9 @@ if __name__ == '__main__':
     print('Loading year samples')
     for y in tqdm(year_list):
         y_dict = {}
-        j = 0
-        for i in range(1,11,2):
-            s1 = pd.read_csv(f'../Data/samples/{y}/sample{i}.csv')
-            s2 = pd.read_csv(f'../Data/samples/{y}/sample{i+1}.csv')
-
-            y_dict[j] = pd.concat([s1,s2], ignore_index=True)
-            j += 1
+        for i in range(1, 11):
+            s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
+            y_dict[i] = s1
 
         sample_dict[y] = y_dict
 

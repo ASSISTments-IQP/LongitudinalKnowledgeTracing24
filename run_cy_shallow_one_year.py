@@ -1,7 +1,5 @@
 from PFA.PFA_Model import PFA
 from bkt.BKT_Model import BKTModel
-from sakt.sakt_pt import SAKTModel
-from DKT.DKT_pt import DKT
 from multiprocessing import Pool
 from tqdm import tqdm
 import pandas as pd

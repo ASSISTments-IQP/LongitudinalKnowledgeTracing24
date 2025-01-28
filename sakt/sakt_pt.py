@@ -167,6 +167,7 @@ class SAKTModel(nn.Module):
         scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=self.learning_decay_rate)
         best_val_auc = 0.0
         epochs_without_improvement = 0
+        prev_loss = 10
 
         for epoch in range(num_epochs):
             self.train()
@@ -197,15 +198,15 @@ class SAKTModel(nn.Module):
             val_auc, val_loss = self.evaluate_internal(val_loader)
             print(f"Validation loss: {val_loss:.4f}, AUC: {val_auc:.4f}")
 
-            if val_auc > best_val_auc:
-                best_val_auc = val_auc
-                epochs_without_improvement = 0
-                torch.save(self.state_dict(), 'best_model.pth')
-            else:
+            if abs(prev_loss - train_loss) < 0.005:
                 epochs_without_improvement += 1
                 if epochs_without_improvement >= patience:
                     print("Early stopping triggered.")
                     break
+            else:
+                epochs_without_improvement = 0
+
+            prev_loss = train_loss
 
             scheduler.step()
 

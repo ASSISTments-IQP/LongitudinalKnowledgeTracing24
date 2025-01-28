@@ -36,7 +36,7 @@ def process_raw_pred(raw_question_matrix, raw_pred, num_questions: int) -> tuple
 
 
 class DKT:
-    def __init__(self, batch_size=64, num_steps=50, hidden_size=128, lr=1e-4, gpu_num=0):
+    def __init__(self, batch_size=64, num_steps=50, hidden_size=128, lr=1e-4, gpu_num=0, patience=3):
         self.vocab = []
         self.vocab_size = 0
         self.enc_dict = {}
@@ -87,6 +87,8 @@ class DKT:
         loss_function = nn.BCELoss()
         optimizer = torch.optim.Adam(self.dkt_model.parameters(), lr=self.lr)
 
+        prev_loss = 10
+        pat_count = 0
         for e in range(num_epochs):
             all_pred, all_target = [], []
 
@@ -111,6 +113,16 @@ class DKT:
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+            if abs(prev_loss - loss) < 0.005:
+                pat_count += 1
+                if pat_count == 3:
+                    print('Minimal improvement for 3 epochs, ending training')
+                    break
+            else:
+                pat_count = 0
+
+            prev_loss = loss
 
             print("[Epoch %d] LogisticLoss: %.6f" % (e, loss))
 
