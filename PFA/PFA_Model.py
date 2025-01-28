@@ -14,7 +14,7 @@ class PFA:
             vb = 1
         else:
             vb = 0
-        self.model = LogisticRegression(penalty=None, solver='lbfgs', verbose=vb, max_iter=10 ** 3)
+        self.model = LogisticRegression(penalty=None, solver='lbfgs', verbose=vb, max_iter=10 ** 4)
 
 
     def preprocess(self, data):
