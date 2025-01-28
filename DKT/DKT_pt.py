@@ -94,21 +94,30 @@ class DKT:
 
             i = 0
             for batch in tqdm(train_data, "Epoch %s" % e):
-                batch = batch.to(self.device)
-                integrated_pred = self.dkt_model(batch)
-                batch_size = batch.shape[0]
-                for student in range(batch_size):
-                    pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
-                    all_pred.append(pred.to('cpu'))
-                    all_target.append(truth.to('cpu').float())
-                    del pred, truth
-                del batch, integrated_pred
-                if i > 100:
-                    gc.collect()
-                    i = 0
+                try:
+                    batch = batch.to(self.device)
+                    integrated_pred = self.dkt_model(batch)
+                    batch_size = batch.shape[0]
+                    for student in range(batch_size):
+                        pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
+                        all_pred.append(pred.to('cpu'))
+                        all_target.append(truth.to('cpu').float())
+                        del pred, truth
+                    del batch, integrated_pred
+                    if i > 100:
+                        gc.collect()
+                        i = 0
+                except RuntimeError:
+                    torch.cuda.empty_cache()
+
+
             all_pred = torch.cat(all_pred)
             all_target = torch.cat(all_target)
-            loss = loss_function(all_pred.to(self.device), all_target.to(self.device))
+            try:
+                loss = loss_function(all_pred.to(self.device), all_target.to(self.device))
+            except RuntimeError:
+                torch.cuda.empty_cache()
+                loss = loss_function(all_pred.to(self.device), all_target.to(self.device))
             # back propagation
             optimizer.zero_grad()
             loss.backward()
