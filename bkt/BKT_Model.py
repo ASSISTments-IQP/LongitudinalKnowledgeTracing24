@@ -125,10 +125,11 @@ class BKTModel:
 
         final_y_true = np.nan_to_num(np.concatenate(y_trues, axis=None))
         final_y_pred = np.nan_to_num(np.concatenate(y_preds, axis=None))
+        final_y_pred_classes = np.round(final_y_pred)
 
         ll = log_loss(final_y_true,final_y_pred)
         auc = roc_auc_score(final_y_true,final_y_pred)
-        f1 = f1_score(final_y_true, final_y_pred)
+        f1 = f1_score(final_y_true, final_y_pred_classes)
 
         if self.verbose:
             print(f'Eval Log Loss: {ll}')

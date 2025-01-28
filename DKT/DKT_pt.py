@@ -136,10 +136,11 @@ class DKT:
         y_truth = torch.cat(y_truth)
         y_truth = y_truth.detach().numpy()
         y_pred = y_pred.detach().numpy()
+        y_pred_class = np.round(y_pred)
 
         auc = roc_auc_score(y_truth,y_pred)
         ll = log_loss(y_truth, y_pred)
-        f1 = f1_score(y_truth, y_pred)
+        f1 = f1_score(y_truth, y_pred_class)
 
         return auc, ll, f1
 

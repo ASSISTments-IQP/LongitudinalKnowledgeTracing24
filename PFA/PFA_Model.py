@@ -105,10 +105,11 @@ class PFA:
         X, y = self.preprocess(data)
 
         y_pred = self.model.predict_proba(X)[:, 1]
+        y_pred_classes = self.model.predict(X)
 
         ll = log_loss(y, y_pred)
         auc = roc_auc_score(y, y_pred)
-        f1 = f1_score(y, y_pred)
+        f1 = f1_score(y, y_pred_classes)
 
         if self.verbose:
             print(f"Log loss: {ll}")

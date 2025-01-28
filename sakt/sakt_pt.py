@@ -238,8 +238,13 @@ class SAKTModel(nn.Module):
                 all_labels.extend(targets.detach().cpu().numpy())
                 all_preds.extend(preds.detach().cpu().numpy())
 
+        all_labels = np.concatenate(all_labels)
+        all_preds = np.concatenate(all_preds)
+        all_pred_classes = np.round(all_preds)
+
         val_loss = np.mean(val_losses)
         val_auc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.0
+        val_f1 = f1_score(all_labels, all_pred_classes)
         print(f"Evaluation loss: {val_loss:.4f}, AUC: {val_auc:.4f}")
         return val_auc, val_loss
 
@@ -267,5 +272,4 @@ class SAKTModel(nn.Module):
 
         val_loss = np.mean(val_losses)
         val_auc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.0
-        val_f1 = f1_score(all_labels, all_preds)
-        return val_auc, val_loss, val_f1
+        return val_auc, val_loss
