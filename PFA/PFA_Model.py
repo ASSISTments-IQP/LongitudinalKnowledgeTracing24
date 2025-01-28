@@ -1,5 +1,5 @@
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import log_loss, roc_auc_score
+from sklearn.metrics import log_loss, roc_auc_score, f1_score
 import scipy.sparse as sp
 import numpy as np
 from tqdm import tqdm
@@ -108,9 +108,10 @@ class PFA:
 
         ll = log_loss(y, y_pred)
         auc = roc_auc_score(y, y_pred)
+        f1 = f1_score(y, y_pred)
 
         if self.verbose:
             print(f"Log loss: {ll}")
             print(f"AUC: {auc}")
 
-        return auc
+        return auc, ll, f1

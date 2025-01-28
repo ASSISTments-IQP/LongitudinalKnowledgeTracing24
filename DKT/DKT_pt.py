@@ -9,7 +9,7 @@ from tqdm import tqdm
 import os
 from torch import nn
 from torch.utils.data import DataLoader
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, log_loss, f1_score
 
 class Net(nn.Module):
     def __init__(self, num_questions, hidden_size, num_layers):
@@ -134,8 +134,14 @@ class DKT:
 
         y_pred = torch.cat(y_pred)
         y_truth = torch.cat(y_truth)
+        y_truth = y_truth.detach().numpy()
+        y_pred = y_pred.detach().numpy()
 
-        return roc_auc_score(y_truth.detach().numpy(), y_pred.detach().numpy())
+        auc = roc_auc_score(y_truth,y_pred)
+        ll = log_loss(y_truth, y_pred)
+        f1 = f1_score(y_truth, y_pred)
+
+        return auc, ll, f1
 
     def check_vocab(self, key):
         return self.enc_dict.get(key, 0)

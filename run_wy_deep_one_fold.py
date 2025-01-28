@@ -1,9 +1,10 @@
 # from sakt.SAKT_model import SAKTModel
 from DKT.DKT_pt import DKT
+from sakt.sakt_pt import SAKTModel
 from tqdm import tqdm
 import pandas as pd
 import sys, json
-model_list = ['DKT','SAKT']
+model_list = ['DKT','SAKT-E','SAKT-KC']
 
 
 def run_one_fold(val_fold, data, model_type, year):
@@ -15,9 +16,18 @@ def run_one_fold(val_fold, data, model_type, year):
             train_list.append(val)
 
     train = pd.concat(train_list)
-    model = DKT(32, 40, 256, 3e-2)
 
-    model.fit(train, num_epochs=10)
+    if model_type == 'DKT':
+        model = DKT(32, 40, 256, 3e-2)
+        num_epochs = 20
+    elif model_type == 'SAKT-E':
+        model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,feature_col='old_problem_id')
+        num_epochs = 6
+    else:
+        model = SAKTModel(70,64,288,8,0.14,4e-4,0.95,feature_col='skill_id')
+        num_epochs = 6
+
+    model.fit(train, num_epochs=num_epochs)
     print(f"{model_type} fit for {year} with hold-out fold {val_fold}")
     return model.evaluate(validation)
 
@@ -56,9 +66,15 @@ if __name__ == '__main__':
 
     print('Samples loaded & processed into folds')
 
+    res_tup = run_one_fold(holdout_fold_num, sample_dict[year], model_type, year)
 
     res = {
-        year: {holdout_fold_num: run_one_fold(holdout_fold_num, sample_dict[year], model_type, year)}
+        year: {
+            holdout_fold_num: {
+                'auc':res_tup[0],
+                'll':res_tup[1],
+                'f1':res_tup[2]
+            }}
     }
 
     with open(f'./wy_DKT_{year}_{holdout_fold_num}.json','w') as fout:

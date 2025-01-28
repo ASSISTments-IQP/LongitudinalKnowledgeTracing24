@@ -4,7 +4,7 @@ import torch.optim as optim
 import pandas as pd
 import numpy as np
 import os
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, f1_score
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
 
@@ -267,4 +267,5 @@ class SAKTModel(nn.Module):
 
         val_loss = np.mean(val_losses)
         val_auc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.0
-        return val_auc, val_loss
+        val_f1 = f1_score(all_labels, all_preds)
+        return val_auc, val_loss, val_f1

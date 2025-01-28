@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from hmmlearn.hmm import CategoricalHMM
-from sklearn.metrics import log_loss, roc_auc_score
+from sklearn.metrics import log_loss, roc_auc_score, f1_score
 
 class BKTModel:
     def __init__(self, n_iter=10, verbose=True):
@@ -128,9 +128,11 @@ class BKTModel:
 
         ll = log_loss(final_y_true,final_y_pred)
         auc = roc_auc_score(final_y_true,final_y_pred)
+        f1 = f1_score(final_y_true, final_y_pred)
 
         if self.verbose:
             print(f'Eval Log Loss: {ll}')
             print(f'Eval AUC: {auc}')
+            print(f'Eval F1: {f1}')
 
-        return auc
+        return auc, ll, f1

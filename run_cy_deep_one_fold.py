@@ -1,17 +1,30 @@
 from DKT.DKT_pt import DKT
+from sakt.sakt_pt import SAKTModel
 import pandas as pd
 import sys, json
 
-model_list = ['DKT', 'SAKT']
+model_list = ['DKT', 'SAKT-E', 'SAKT-KC']
 
 
 def run_one_sample(train, test_samps, model_type):
-
-	model = DKT(32, 40, 256, 3e-2)
-	model.fit(train, 10)
+	if model_type == 'DKT':
+		model = DKT(32, 40, 256, 3e-2)
+		num_epochs = 20
+	elif model_type == 'SAKT-E':
+		model = SAKTModel(70, 64, 288, 8, 0.14, 4e-4, 0.95, feature_col='old_problem_id')
+		num_epochs = 6
+	else:
+		model = SAKTModel(70, 64, 288, 8, 0.14, 4e-4, 0.95, feature_col='skill_id')
+		num_epochs = 6
+	model.fit(train, num_epochs)
 	res = {}
 	for year, samp in test_samps.items():
-		res[year] = model.evaluate(samp)
+		eval_tup = model.evaluate(samp)
+		res[year] = {
+			'auc': eval_tup[0],
+			'll': eval_tup[1],
+			'f1': eval_tup[2]
+		}
 	return res
 
 if __name__ == '__main__':
