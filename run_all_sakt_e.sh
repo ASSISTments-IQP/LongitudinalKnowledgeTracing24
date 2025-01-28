@@ -2,6 +2,6 @@
 cd ./job_start_scripts
 pwd
 
-for fn in ./SAKT-E; do
+for fn in ./SAKT-E*.sh; do
   sbatch "$fn"
   done
