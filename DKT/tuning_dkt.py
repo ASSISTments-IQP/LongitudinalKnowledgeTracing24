@@ -2,12 +2,13 @@ import optuna
 from DKT_pt import DKT
 import pandas as pd
 import numpy as np
+import random
 from multiprocessing import Pool
 
 
-def run_one_fold(data, test_fold, ns, bs, dm, lr, ne, dr, rl):
+def run_one_fold(data, train_fold, ns, bs, dm, lr, ne, dr, rl):
     print((ns,bs,dm,lr,ne))
-    train_data = data.pop(test_fold)
+    train_data = data.pop(train_fold)
     test_data = pd.concat(data)
 
     train_data.drop_duplicates(subset=['problem_log_id'])
@@ -16,7 +17,7 @@ def run_one_fold(data, test_fold, ns, bs, dm, lr, ne, dr, rl):
     train_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
     test_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
 
-    mod = DKT(bs, ns, dm, lr, dr, rl, gpu_num=test_fold)
+    mod = DKT(bs, ns, dm, lr, dr, rl)
     mod.fit(train_data, num_epochs=ne)
     return mod.evaluate(test_data)[0]
 
@@ -26,10 +27,10 @@ def objective(trial):
 
     alogs = df.assignment_log_id.unique()
     np.random.shuffle(alogs)
-    folds = np.array_split(alogs, 4)
+    folds = np.array_split(alogs, 2)
 
     data = []
-    for i in range(4):
+    for i in range(2):
         data.append(df[df['assignment_log_id'].isin(folds[i])].copy())
 
     num_steps = trial.suggest_int('num_steps', 20, 50, step = 10)
@@ -37,16 +38,10 @@ def objective(trial):
     d_model = trial.suggest_int('d_model', 64, 512, step = 16)
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
     learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-1, log=True)
-    reg_lambda = trial.suggest_float('reg_lambda', 1e-6, 1, log=True)
+    reg_lambda = trial.suggest_float('reg_lambda', 1e-6, 1e-2, log=True)
     num_epochs = trial.suggest_int('num_epochs', 1, 10)
 
-    res = []
-    args = zip([data] * 4, range(4), [num_steps] * 4, [batch_size] * 4, [d_model] * 4, [learning_rate] * 4, [num_epochs] * 4, [dropout_rate] * 4, [reg_lambda] * 4)
-    with Pool(4) as p:
-        for l in p.starmap(run_one_fold, args):
-            res.append(l)
-
-    return np.mean(res)
+    return run_one_fold(data, random.randint(0,2), num_steps, batch_size, d_model, learning_rate, num_epochs, dropout_rate, reg_lambda)
 
 
 if __name__ == '__main__':

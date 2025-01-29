@@ -1,14 +1,17 @@
 import optuna
 import pandas as pd
 import numpy as np
-import multiprocessing as mp
-from multiprocessing import Process, Queue
+import random, sys
 
 
-def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr, res_queue):
+def run_one_fold(data, train_fold, ns, bs, dm, nh, dr, ne, ilr, ldr):
     from sakt_pt import SAKTModel
-    print(test_fold)
-    train_data = data.pop(test_fold)
+    if model_type == 'E':
+        f_col = 'old_problem_id'
+    elif model_type == 'KC':
+        f_col = 'skill_id'
+
+    train_data = data.pop(train_fold)
     test_data = pd.concat(data)
 
     train_data.drop_duplicates(subset=['problem_log_id'])
@@ -17,9 +20,9 @@ def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr, res_queue):
     train_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
     test_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
 
-    mod = SAKTModel(ns, bs, dm, nh, dr, ilr, ldr, feature_col='old_problem_id', gpu_num=test_fold)
+    mod = SAKTModel(ns, bs, dm, nh, dr, ilr, ldr, feature_col=f_col)
     mod.fit(train_data, num_epochs=ne)
-    res_queue.put(mod.evaluate(test_data)[0])
+    return mod.evaluate(test_data)[0]
 
 
 def objective(trial):
@@ -27,10 +30,10 @@ def objective(trial):
 
     alogs = df.assignment_log_id.unique()
     np.random.shuffle(alogs)
-    folds = np.array_split(alogs, 4)
+    folds = np.array_split(alogs, 2)
 
     data = []
-    for i in range(4):
+    for i in range(2):
         data.append(df[df['assignment_log_id'].isin(folds[i])].copy())
 
     num_steps = trial.suggest_int('num_steps', 20, 100, step = 10)
@@ -42,28 +45,15 @@ def objective(trial):
     init_learning_rate = trial.suggest_float('init_learning_rate', 1e-6, 1e-2, log=True)
     learning_decay_rate = trial.suggest_float('learning_decay_rate', 0.7, 0.99)
 
-    print(batch_size)
-    res_queue = Queue()
-    procs = []
-    for i in range(4):
-        p = Process(target=run_one_fold, args=(data.copy(), i, num_steps, batch_size, d_model, num_heads, dropout_rate, num_epochs, init_learning_rate, learning_decay_rate, res_queue,))
-        p.start()
-        procs.append(p)
 
-    for i in range(4):
-        procs[i].join()
-
-    res = []
-    for i in range(4):
-        res.append(res_queue.get())
-
-    return np.mean(res)
+    return run_one_fold(data, random.randint(0,1), num_steps, batch_size, d_model, num_heads, dropout_rate, num_epochs, init_learning_rate, learning_decay_rate)
 
 
 if __name__ == '__main__':
-    mp.set_start_method('spawn')
+    model_type = sys.argv[1]
+
     study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler())
-    study.optimize(objective, n_trials=10)
+    study.optimize(objective, n_trials=20)
 
     print("Best hyperparameters:", study.best_params)
     print("Best validation AUC:", study.best_value)
