@@ -45,6 +45,7 @@ def objective(trial):
 
     train_num = random.randint(0,1)
     test_num = 0 if train_num == 1 else 1
+    print(data)
 
     return run_one_fold(data[train_num], data[test_num], num_steps, batch_size, d_model, num_heads, dropout_rate, num_epochs, init_learning_rate, learning_decay_rate)
 
