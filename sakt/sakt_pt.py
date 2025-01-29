@@ -213,31 +213,33 @@ class SAKTModel(nn.Module):
         self.eval()
 
         df_eval = df_eval.dropna()
+        print(df_eval.shape)
 
         eval_dataset = SAKTDataset(df_eval, self.exercise_map, self.num_steps, feature_col=self.feature_col)
+        print(eval_dataset)
         eval_loader = DataLoader(eval_dataset, batch_size=self.batch_size, shuffle=False)
+        print(eval_loader)
 
         val_losses, all_labels, all_preds = [], [], []
 
-        with torch.no_grad():
-            for past_exercises, past_responses, current_exercises, targets in tqdm(eval_loader, desc="Evaluating"):
-                try:
-                    past_exercises = past_exercises.to(self.device)
-                    past_responses = past_responses.to(self.device)
-                    current_exercises = current_exercises.to(self.device)
-                    targets = targets.to(self.device)
+        for past_exercises, past_responses, current_exercises, targets in tqdm(eval_loader, desc="Evaluating"):
+            try:
+                past_exercises = past_exercises.to(self.device)
+                past_responses = past_responses.to(self.device)
+                current_exercises = current_exercises.to(self.device)
+                targets = targets.to(self.device)
 
-                    preds = self(past_exercises, past_responses, current_exercises)
-                    loss = self.compute_loss(preds, targets)
+                preds = self(past_exercises, past_responses, current_exercises)
+                loss = self.compute_loss(preds, targets)
 
-                    val_losses.append(loss.item())
-                    all_labels.extend(targets.detach().cpu().numpy())
-                    all_preds.extend(preds.detach().cpu().numpy())
-                except RuntimeError as e:
-                    if "out of memory" in str(e):
-                        gc.collect()
-                        torch.cuda.empty_cache()
-                        continue
+                val_losses.append(loss.item())
+                all_labels.extend(targets.detach().cpu().numpy())
+                all_preds.extend(preds.detach().cpu().numpy())
+            except RuntimeError as e:
+                if "out of memory" in str(e):
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    continue
 
         all_labels = np.concatenate(all_labels)
         all_preds = np.concatenate(all_preds)
@@ -247,7 +249,7 @@ class SAKTModel(nn.Module):
         val_auc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.0
         val_f1 = f1_score(all_labels, all_pred_classes)
         print(f"Evaluation loss: {val_loss:.4f}, AUC: {val_auc:.4f}")
-        return val_auc, val_loss
+        return val_auc, val_loss, val_f1
 
     def evaluate_internal(self, val_loader):
         """
