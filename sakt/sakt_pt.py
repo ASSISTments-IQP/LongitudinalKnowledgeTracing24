@@ -222,17 +222,23 @@ class SAKTModel(nn.Module):
 
         with torch.no_grad():
             for past_exercises, past_responses, current_exercises, targets in tqdm(eval_loader, desc="Evaluating"):
-                past_exercises = past_exercises.to(self.device)
-                past_responses = past_responses.to(self.device)
-                current_exercises = current_exercises.to(self.device)
-                targets = targets.to(self.device)
+                try:
+                    past_exercises = past_exercises.to(self.device)
+                    past_responses = past_responses.to(self.device)
+                    current_exercises = current_exercises.to(self.device)
+                    targets = targets.to(self.device)
 
-                preds = self(past_exercises, past_responses, current_exercises)
-                loss = self.compute_loss(preds, targets)
+                    preds = self(past_exercises, past_responses, current_exercises)
+                    loss = self.compute_loss(preds, targets)
 
-                val_losses.append(loss.item())
-                all_labels.extend(targets.detach().cpu().numpy())
-                all_preds.extend(preds.detach().cpu().numpy())
+                    val_losses.append(loss.item())
+                    all_labels.extend(targets.detach().cpu().numpy())
+                    all_preds.extend(preds.detach().cpu().numpy())
+                except RuntimeError as e:
+                    if "out of memory" in str(e):
+                        gc.collect()
+                        torch.cuda.empty_cache()
+                        continue
 
         all_labels = np.concatenate(all_labels)
         all_preds = np.concatenate(all_preds)
