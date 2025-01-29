@@ -213,7 +213,6 @@ class SAKTModel(nn.Module):
         self.eval()
 
         df_eval = df_eval.dropna()
-        df_eval[self.feature_col] = df_eval[self.feature_col].apply(lambda x: self.exercise_map.get(x, 0))
 
         eval_dataset = SAKTDataset(df_eval, self.exercise_map, self.num_steps, feature_col=self.feature_col)
         eval_loader = DataLoader(eval_dataset, batch_size=self.batch_size, shuffle=False)
