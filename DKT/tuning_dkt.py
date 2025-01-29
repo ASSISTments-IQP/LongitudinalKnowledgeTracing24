@@ -7,8 +7,8 @@ from multiprocessing import Pool
 
 def run_one_fold(data, test_fold, ns, bs, dm, lr, ne, dr, rl):
     print((ns,bs,dm,lr,ne))
-    test_data = data.pop(test_fold)
-    train_data = pd.concat(data)
+    train_data = data.pop(test_fold)
+    test_data = pd.concat(data)
 
     train_data.drop_duplicates(subset=['problem_log_id'])
     test_data.drop_duplicates(subset=['problem_log_id'])
