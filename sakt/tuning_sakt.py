@@ -8,8 +8,8 @@ from multiprocessing import Process, Queue
 def run_one_fold(data, test_fold, ns, bs, dm, nh, dr, ne, ilr, ldr, res_queue):
     from sakt_pt import SAKTModel
     print(test_fold)
-    test_data = data.pop(test_fold)
-    train_data = pd.concat(data)
+    train_data = data.pop(test_fold)
+    test_data = pd.concat(data)
 
     train_data.drop_duplicates(subset=['problem_log_id'])
     test_data.drop_duplicates(subset=['problem_log_id'])
@@ -38,7 +38,7 @@ def objective(trial):
     d_model = trial.suggest_int('d_model', 64, 512, step = 32)
     num_heads = trial.suggest_categorical('num_heads', [2,4,8,16,32])
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
-    num_epochs = trial.suggest_int('num_epochs', 3, 10)
+    num_epochs = trial.suggest_int('num_epochs', 50, 100)
     init_learning_rate = trial.suggest_float('init_learning_rate', 1e-6, 1e-2, log=True)
     learning_decay_rate = trial.suggest_float('learning_decay_rate', 0.7, 0.99)
 
@@ -63,7 +63,7 @@ def objective(trial):
 if __name__ == '__main__':
     mp.set_start_method('spawn')
     study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler())
-    study.optimize(objective, n_trials=50)
+    study.optimize(objective, n_trials=10)
 
     print("Best hyperparameters:", study.best_params)
     print("Best validation AUC:", study.best_value)

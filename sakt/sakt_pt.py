@@ -152,21 +152,12 @@ class SAKTModel(nn.Module):
 
         self.exercise_embedding = nn.Embedding(self.num_exercises + 1, self.d_model, padding_idx=0).to(self.device)
 
-        dataset = SAKTDataset(df, self.exercise_map, self.num_steps, feature_col=self.feature_col)
-
-        total_samples = len(dataset)
-        val_size = int(total_samples * validation_split)
-        train_size = total_samples - val_size
-        train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
-
-        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
+        train_dataset = SAKTDataset(df, self.exercise_map, self.num_steps, feature_col=self.feature_col)
 
         optimizer = optim.Adam(self.parameters(), lr=self.init_learning_rate)
         scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=self.learning_decay_rate)
-        best_val_auc = 0.0
         epochs_without_improvement = 0
-        prev_loss = 10
+        best_loss = 10
 
         for epoch in range(num_epochs):
             self.train()
@@ -201,16 +192,15 @@ class SAKTModel(nn.Module):
             print(f"Epoch {epoch+1}/{num_epochs}, Training loss: {train_loss:.4f}, AUC: {train_auc:.4f}")
 
             # Validation
-            val_auc, val_loss = self.evaluate_internal(val_loader)
-            print(f"Validation loss: {val_loss:.4f}, AUC: {val_auc:.4f}")
 
-            if abs(prev_loss - train_loss) < 1e-5:
+            if train_loss > best_loss:
                 epochs_without_improvement += 1
                 if epochs_without_improvement >= patience:
                     print("Early stopping triggered.")
                     break
             else:
                 epochs_without_improvement = 0
+                best_loss = train_loss
 
             prev_loss = train_loss
 
