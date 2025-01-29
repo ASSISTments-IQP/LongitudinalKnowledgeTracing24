@@ -132,7 +132,7 @@ class DKT:
             loss.backward()
             optimizer.step()
 
-            if best_loss > loss:
+            if best_loss < loss:
                 pat_count += 1
                 if pat_count == self.patience:
                     print(f'Minimal improvement for {self.patience} epochs, ending training')
