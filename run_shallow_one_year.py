@@ -7,9 +7,12 @@ import sys, json
 model_list = ['BKT','PFA']
 
 
-def run_one_sample(model_type, train_samples, test_samples, sample_num):
-    train = train_samples[sample_num]
+def run_one_sample(model_args, train_samples, test_samples, sample_num):
+    model_type, train_year = model_args
+    train = train_samples.pop(sample_num)
+    wy_test = pd.concat(train_samples)
     tests = {}
+    tests[train_year] = wy_test
     for year, samps in test_samples.items():
         tests[year] = (samps[sample_num])
 
@@ -65,7 +68,7 @@ if __name__ == '__main__':
 
 
     res = {}
-    args = zip([model_type] * 10, [train_dict] * 10, [test_dict] * 10, range(1,11))
+    args = zip([(model_type, train_year)] * 10, [train_dict] * 10, [test_dict] * 10, range(1,11))
     with Pool(10) as p:
         for l in p.starmap(run_one_sample, args):
             res[l[1]] = l[0]

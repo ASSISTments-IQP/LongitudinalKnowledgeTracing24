@@ -11,4 +11,4 @@
 #SBATCH -C "A100|H100|L40S"
 module load cuda
 source ~/myenvs/cuda-torch/bin/activate
-python3 ../run_wy_deep_one_fold.py MODEL_TYPE YEAR FOLD_NUM
+python3 ../run_deep_one_fold.py MODEL_TYPE YEAR FOLD_NUM

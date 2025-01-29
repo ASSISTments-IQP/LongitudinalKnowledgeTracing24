@@ -47,22 +47,18 @@ if __name__ == '__main__':
 	sample_dict = {}
 	print('Loading year samples')
 
+	train_dict = {}
+	for i in range(1, 11):
+		s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
+		train_dict[i] = s1
 
+	train_sample = train_dict.pop(sample_num)
+	wy_test = pd.concat(train_dict)
+	test_years = year_list[year_list.index(train_year):]
 
-	train_sample = pd.read_csv(f'../Data/samples/{train_year}/sample{sample_num}.csv')
-
-	if train_year == '19-20':
-		test_years = ['20-21', '21-22', '22-23', '23-24']
-	elif train_year == '20-21':
-		test_years = ['21-22', '22-23', '23-24']
-	elif train_year == '21-22':
-		test_years = ['22-23', '23-24']
-	elif train_year == '22-23':
-		test_years = ['23-24']
-	else:
-		raise Exception('Invalid training year provided')
 
 	test_samps = {}
+	test_samps[train_year] = wy_test
 	for y in test_years:
 		test_samps[y] = pd.read_csv(f'../Data/samples/{y}/sample{sample_num}.csv')
 
