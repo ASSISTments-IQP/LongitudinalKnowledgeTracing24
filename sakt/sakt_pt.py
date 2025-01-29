@@ -223,7 +223,6 @@ class SAKTModel(nn.Module):
         val_losses, all_labels, all_preds = [], [], []
 
         for past_exercises, past_responses, current_exercises, targets in tqdm(eval_loader, desc="Evaluating"):
-            print(past_exercises)
             try:
                 past_exercises = past_exercises.to(self.device)
                 past_responses = past_responses.to(self.device)
@@ -233,9 +232,13 @@ class SAKTModel(nn.Module):
                 preds = self(past_exercises, past_responses, current_exercises)
                 loss = self.compute_loss(preds, targets)
 
+                print(preds)
+                print(targets)
                 val_losses.append(loss.item())
                 all_labels.extend(targets.detach().cpu().numpy())
                 all_preds.extend(preds.detach().cpu().numpy())
+
+                print(all_labels)
             except RuntimeError as e:
                 if "out of memory" in str(e):
                     gc.collect()
