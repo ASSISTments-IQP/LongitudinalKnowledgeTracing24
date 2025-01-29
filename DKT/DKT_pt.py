@@ -19,10 +19,17 @@ class Net(nn.Module):
         self.lstm = nn.LSTM(num_questions * 2, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(self.hidden_dim, num_questions)
 
-    def forward(self, x):
-        out, _ = self.lstm(x)
-        res = torch.sigmoid(self.fc(out))
-        return res
+    def forward(self, x, num_tries = 0):
+        if num_tries > 3:
+            raise Exception("Tried to do inference >3 times, still OOM")
+        
+        try:
+            out, _ = self.lstm(x)
+            res = torch.sigmoid(self.fc(out))
+            return res
+        except RuntimeError:
+            torch.cuda.empty_cache()
+            return self.forward(x, num_tries+1)
 
 
 def process_raw_pred(raw_question_matrix, raw_pred, num_questions: int) -> tuple:
@@ -94,21 +101,18 @@ class DKT:
 
             i = 0
             for batch in tqdm(train_data, "Epoch %s" % e):
-                try:
-                    batch = batch.to(self.device)
-                    integrated_pred = self.dkt_model(batch)
-                    batch_size = batch.shape[0]
-                    for student in range(batch_size):
-                        pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
-                        all_pred.append(pred.to('cpu'))
-                        all_target.append(truth.to('cpu').float())
-                        del pred, truth
-                    del batch, integrated_pred
-                    if i > 100:
-                        gc.collect()
-                        i = 0
-                except RuntimeError:
-                    torch.cuda.empty_cache()
+                batch = batch.to(self.device)
+                integrated_pred = self.dkt_model(batch)
+                batch_size = batch.shape[0]
+                for student in range(batch_size):
+                    pred, truth = process_raw_pred(batch[student], integrated_pred[student], self.vocab_size)
+                    all_pred.append(pred.to('cpu'))
+                    all_target.append(truth.to('cpu').float())
+                    del pred, truth
+                del batch, integrated_pred
+                if i > 100:
+                    gc.collect()
+                    i = 0
 
 
             all_pred = torch.cat(all_pred)
