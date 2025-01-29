@@ -203,11 +203,9 @@ class SAKTModel(nn.Module):
                 epochs_without_improvement = 0
                 best_loss = train_loss
 
-            prev_loss = train_loss
-
             scheduler.step()
 
-    def evaluate(self, df_eval: pd.DataFrame, batch_size=64):
+    def evaluate(self, df_eval: pd.DataFrame):
         """
         pretty bog standard eval, uses BCEWithLogits and creates a DS and DL using the provided eval df.
         """
@@ -218,7 +216,7 @@ class SAKTModel(nn.Module):
         df_eval[self.feature_col] = df_eval[self.feature_col].apply(lambda x: self.exercise_map.get(x, 0))
 
         eval_dataset = SAKTDataset(df_eval, self.exercise_map, self.num_steps, feature_col=self.feature_col)
-        eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False)
+        eval_loader = DataLoader(eval_dataset, batch_size=self.batch_size, shuffle=False)
 
         val_losses, all_labels, all_preds = [], [], []
 

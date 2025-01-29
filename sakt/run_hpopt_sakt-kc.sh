@@ -3,8 +3,7 @@
 #SBATCH -n 1
 #SBATCH --mem=128g
 #SBATCH -J "SAKTKCHPOPT"
-#SBATCH -p short
-#SBATCH -t 24:00:00
+pou
 #SBATCH --gres=gpu:1
 #SBATCH -C "A100|H100|L40S"
 module load python/3.12.7

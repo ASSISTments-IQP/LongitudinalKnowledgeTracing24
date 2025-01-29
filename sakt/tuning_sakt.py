@@ -4,15 +4,13 @@ import numpy as np
 import random, sys
 
 
-def run_one_fold(data, train_fold, ns, bs, dm, nh, dr, ne, ilr, ldr):
+def run_one_fold(train_data, test_data, ns, bs, dm, nh, dr, ne, ilr, ldr):
+    print((ns,bs,dm,nh,dr,ne,ilr,ldr))
     from sakt_pt import SAKTModel
     if model_type == 'E':
         f_col = 'old_problem_id'
     elif model_type == 'KC':
         f_col = 'skill_id'
-
-    train_data = data.pop(train_fold)
-    test_data = pd.concat(data)
 
     train_data.drop_duplicates(subset=['problem_log_id'])
     test_data.drop_duplicates(subset=['problem_log_id'])
@@ -45,15 +43,17 @@ def objective(trial):
     init_learning_rate = trial.suggest_float('init_learning_rate', 1e-6, 1e-2, log=True)
     learning_decay_rate = trial.suggest_float('learning_decay_rate', 0.7, 0.99)
 
+    train_num = random.randint(0,1)
+    test_num = 0 if train_num == 1 else 1
 
-    return run_one_fold(data, random.randint(0,1), num_steps, batch_size, d_model, num_heads, dropout_rate, num_epochs, init_learning_rate, learning_decay_rate)
+    return run_one_fold(data[train_num], data[test_num], num_steps, batch_size, d_model, num_heads, dropout_rate, num_epochs, init_learning_rate, learning_decay_rate)
 
 
 if __name__ == '__main__':
     model_type = sys.argv[1]
 
     study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler())
-    study.optimize(objective, n_trials=20)
+    study.optimize(objective, n_trials=50)
 
     print("Best hyperparameters:", study.best_params)
     print("Best validation AUC:", study.best_value)
