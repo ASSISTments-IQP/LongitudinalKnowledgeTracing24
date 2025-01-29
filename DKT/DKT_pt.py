@@ -50,6 +50,7 @@ class DKT:
         self.reg_lambda = reg_lambda
         self.dropout_rate = dropout_rate
         self.dkt_model = None
+        self.patience = patience
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
         os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -133,8 +134,8 @@ class DKT:
 
             if best_loss > loss:
                 pat_count += 1
-                if pat_count == pat_count:
-                    print('Minimal improvement for 3 epochs, ending training')
+                if pat_count == self.patience:
+                    print(f'Minimal improvement for {self.patience} epochs, ending training')
                     break
             else:
                 pat_count = 0
