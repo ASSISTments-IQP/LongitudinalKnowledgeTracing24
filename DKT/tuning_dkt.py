@@ -26,23 +26,18 @@ def objective(trial):
     alogs = df.assignment_log_id.unique()
     np.random.shuffle(alogs)
     folds = np.array_split(alogs, 2)
+    train = df[df['assignment_log_id'].isin(folds[0])].copy()
+    test = df[df['assignment_log_id'].isin(folds[1])].copy()
 
-    data = []
-    for i in range(2):
-        data.append(df[df['assignment_log_id'].isin(folds[i])].copy())
-
-    num_steps = trial.suggest_int('num_steps', 20, 50, step = 10)
+    num_steps = trial.suggest_int('num_steps', 20, 100, step = 10)
     batch_size = trial.suggest_int('batch_size', 16, 64, step=8)
-    d_model = trial.suggest_int('d_model', 64, 512, step = 16)
+    d_model = trial.suggest_int('d_model', 64, 512, step = 32)
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
-    learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-1, log=True)
+    learning_rate = trial.suggest_float('learning_rate', 1e-4, 1e-2, log=True)
     reg_lambda = trial.suggest_float('reg_lambda', 1e-6, 1e-2, log=True)
     num_epochs = trial.suggest_int('num_epochs', 100, 200)
 
-    train_num = random.randint(0,1)
-    test_num = 0 if train_num == 1 else 1
-
-    return run_one_fold(data[train_num],data[test_num], num_steps, batch_size, d_model, learning_rate, num_epochs, dropout_rate, reg_lambda)
+    return run_one_fold(train, test, num_steps, batch_size, d_model, learning_rate, num_epochs, dropout_rate, reg_lambda)
 
 
 if __name__ == '__main__':

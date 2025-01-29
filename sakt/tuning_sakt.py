@@ -29,10 +29,8 @@ def objective(trial):
     alogs = df.assignment_log_id.unique()
     np.random.shuffle(alogs)
     folds = np.array_split(alogs, 2)
-
-    data = []
-    for i in range(2):
-        data.append(df[df['assignment_log_id'].isin(folds[i])].copy())
+    train = df[df['assignment_log_id'].isin(folds[0])].copy()
+    test = df[df['assignment_log_id'].isin(folds[1])].copy()
 
     num_steps = trial.suggest_int('num_steps', 20, 100, step = 10)
     batch_size = trial.suggest_int('batch_size', 16, 64, step=8)
@@ -40,14 +38,10 @@ def objective(trial):
     num_heads = trial.suggest_categorical('num_heads', [2,4,8,16,32])
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
     num_epochs = trial.suggest_int('num_epochs', 10, 40)
-    init_learning_rate = trial.suggest_float('init_learning_rate', 1e-6, 1e-2, log=True)
+    init_learning_rate = trial.suggest_float('init_learning_rate', 1e-4, 1e-2, log=True)
     learning_decay_rate = trial.suggest_float('learning_decay_rate', 0.7, 0.99)
 
-    train_num = random.randint(0,1)
-    test_num = 0 if train_num == 1 else 1
-    print(data)
-
-    return run_one_fold(data[train_num], data[test_num], num_steps, batch_size, d_model, num_heads, dropout_rate, num_epochs, init_learning_rate, learning_decay_rate)
+    return run_one_fold(train, test, num_steps, batch_size, d_model, num_heads, dropout_rate, num_epochs, init_learning_rate, learning_decay_rate)
 
 
 if __name__ == '__main__':
