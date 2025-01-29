@@ -171,22 +171,8 @@ class DSAKTModel(nn.Module):
 
 
 if __name__ == '__main__':
-	sample_dict_folds = {}
 	year_list = ['19-20', '20-21', '21-22', '22-23', '23-24']
-
 	print('Loading year samples')
-	for y in year_list:
-		y_dict = {}
-		j = 0
-		for i in range(1, 11, 2):
-			s1 = pd.read_csv(f'./Data/samples/{y}/sample{i}.csv')
-			s2 = pd.read_csv(f'./Data/samples/{y}/sample{i + 1}.csv')
-
-			y_dict[j] = pd.concat([s1, s2], ignore_index=True)
-			j += 1
-
-		sample_dict_folds[y] = y_dict
-
 	sample_dict_all = {}
 	for y in year_list:
 		y_dict = {}
@@ -196,22 +182,8 @@ if __name__ == '__main__':
 		sample_dict_all[y] = y_dict
 	res = []
 
-	for key0, val_d in sample_dict_folds.items():
-		for key, val in val_d.items():
-			res.append(['BKT', (len(val.skill_id.unique())+1)*5])
-			res.append(['PFA', (len(val.skill_id.unique())+1)*3+1])
-			dummy_dkt = DKTNet((len(val.skill_id.unique())+1)*2, 256, 1)
-			res.append(['DKT', sum(p.numel() for p in dummy_dkt.parameters() if p.requires_grad)])
-			dummy_sakt_e = DSAKTModel(70,64,288,8,0.14,4e-4,0.95,feature_col='old_problem_id')
-			dummy_sakt_kc = DSAKTModel(70,64,288,8,0.14,4e-4,0.95,feature_col='skill_id')
-			res.append(['SAKT-E', dummy_sakt_e.fit(val)])
-			res.append(['SAKT-KC', dummy_sakt_kc.fit(val)])
-
 	for key0, val_d in sample_dict_all.items():
 		for key, val in val_d.items():
-			valdcopy = val_d.copy()
-			valdcopy.pop(key)
-			val = pd.concat(valdcopy.values())
 			res.append(['BKT', (len(val.skill_id.unique()) + 1) * 5])
 			res.append(['PFA', (len(val.skill_id.unique()) + 1) * 3 + 1])
 			dummy_dkt = DKTNet((len(val.skill_id.unique()) + 1) * 2, 256, 1)

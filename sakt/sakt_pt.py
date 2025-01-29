@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 import numpy as np
-import os
+import os, gc
 from sklearn.metrics import roc_auc_score, f1_score
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
@@ -107,7 +107,6 @@ class SAKTModel(nn.Module):
         return df, exercise_map, num_exercises
 
     def forward(self, past_exercises, past_responses, current_exercises):
-        batch_size = past_exercises.size(0)
         past_exercise_emb = self.exercise_embedding(past_exercises)  # Shape: (batch_size, seq_len, d_model)
         past_response_emb = self.response_embedding(past_responses)  # Shape: (batch_size, seq_len, d_model)
         interactions_emb = past_exercise_emb + past_response_emb     # Shape: (batch_size, seq_len, d_model)
@@ -174,21 +173,28 @@ class SAKTModel(nn.Module):
             train_losses, all_labels, all_preds = [], [], []
 
             for past_exercises, past_responses, current_exercises, targets in tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}"):
-                past_exercises = past_exercises.to(self.device)
-                past_responses = past_responses.to(self.device)
-                current_exercises = current_exercises.to(self.device)
-                targets = targets.to(self.device)
+                try:
+                    past_exercises = past_exercises.to(self.device)
+                    past_responses = past_responses.to(self.device)
+                    current_exercises = current_exercises.to(self.device)
+                    targets = targets.to(self.device)
 
-                optimizer.zero_grad()
-                preds = self(past_exercises, past_responses, current_exercises)
-                loss = self.compute_loss(preds, targets)
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
-                optimizer.step()
+                    optimizer.zero_grad()
+                    preds = self(past_exercises, past_responses, current_exercises)
+                    loss = self.compute_loss(preds, targets)
+                    loss.backward()
+                    torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
+                    optimizer.step()
 
-                train_losses.append(loss.item())
-                all_labels.extend(targets.detach().cpu().numpy())
-                all_preds.extend(preds.detach().cpu().numpy())
+                    train_losses.append(loss.item())
+                    all_labels.extend(targets.detach().cpu().numpy())
+                    all_preds.extend(preds.detach().cpu().numpy())
+                except RuntimeError as e:
+                    if "out of memory" in str(e):
+                        optimizer.zero_grad()
+                        gc.collect()
+                        torch.cuda.empty_cache()
+                        continue
 
             train_loss = np.mean(train_losses)
             train_auc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.0
