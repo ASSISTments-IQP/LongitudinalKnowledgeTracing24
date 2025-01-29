@@ -223,6 +223,7 @@ class SAKTModel(nn.Module):
         val_losses, all_labels, all_preds = [], [], []
 
         for past_exercises, past_responses, current_exercises, targets in tqdm(eval_loader, desc="Evaluating"):
+            print(past_exercises)
             try:
                 past_exercises = past_exercises.to(self.device)
                 past_responses = past_responses.to(self.device)
