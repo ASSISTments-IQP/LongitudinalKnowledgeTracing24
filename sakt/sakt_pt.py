@@ -213,13 +213,9 @@ class SAKTModel(nn.Module):
         self.eval()
 
         df_eval = df_eval.dropna()
-        print(df_eval.shape)
 
         eval_dataset = SAKTDataset(df_eval, self.exercise_map, self.num_steps, feature_col=self.feature_col)
-        print(eval_dataset)
         eval_loader = DataLoader(eval_dataset, batch_size=self.batch_size, shuffle=False)
-        print(eval_loader)
-
         val_losses, all_labels, all_preds = [], [], []
 
         for past_exercises, past_responses, current_exercises, targets in tqdm(eval_loader, desc="Evaluating"):
@@ -235,16 +231,12 @@ class SAKTModel(nn.Module):
                 val_losses.append(loss.item())
                 all_labels.extend(targets.detach().cpu().numpy())
                 all_preds.extend(preds.detach().cpu().numpy())
-
-                print(len(all_labels))
             except RuntimeError as e:
                 if "out of memory" in str(e):
                     gc.collect()
                     torch.cuda.empty_cache()
                     continue
 
-        all_labels = np.concatenate(all_labels)
-        all_preds = np.concatenate(all_preds)
         all_pred_classes = np.round(all_preds)
 
         val_loss = np.mean(val_losses)

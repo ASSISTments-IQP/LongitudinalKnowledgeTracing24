@@ -19,7 +19,7 @@ def run_one_fold(train_data, test_data, ns, bs, dm, nh, dr, ne, ilr, ldr):
     test_data.sort_values(by=['user_xid', 'start_time'], inplace=True)
 
     mod = SAKTModel(ns, bs, dm, nh, dr, ilr, ldr, feature_col=f_col)
-    mod.fit(train_data, num_epochs=1)
+    mod.fit(train_data, num_epochs=ne)
     return mod.evaluate(test_data)[0]
 
 
