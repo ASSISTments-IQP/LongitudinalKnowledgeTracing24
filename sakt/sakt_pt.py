@@ -241,7 +241,7 @@ class SAKTModel(nn.Module):
 
         val_loss = np.mean(val_losses)
         val_auc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.0
-        val_f1 = f1_score(all_labels, all_pred_classes)
+        val_f1 = f1_score(all_labels, all_pred_classes, average='micro')
         print(f"Evaluation loss: {val_loss:.4f}, AUC: {val_auc:.4f}")
         return val_auc, val_loss, val_f1
 
