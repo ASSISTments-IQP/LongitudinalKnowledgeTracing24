@@ -153,6 +153,7 @@ class SAKTModel(nn.Module):
         self.exercise_embedding = nn.Embedding(self.num_exercises + 1, self.d_model, padding_idx=0).to(self.device)
 
         train_dataset = SAKTDataset(df, self.exercise_map, self.num_steps, feature_col=self.feature_col)
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
         optimizer = optim.Adam(self.parameters(), lr=self.init_learning_rate)
         scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=self.learning_decay_rate)

@@ -41,7 +41,7 @@ def objective(trial):
     reg_lambda = trial.suggest_float('reg_lambda', 1e-6, 1e-2, log=True)
     num_epochs = trial.suggest_int('num_epochs', 1, 10)
 
-    return run_one_fold(data, random.randint(0,2), num_steps, batch_size, d_model, learning_rate, num_epochs, dropout_rate, reg_lambda)
+    return run_one_fold(data, random.randint(0,1), num_steps, batch_size, d_model, learning_rate, num_epochs, dropout_rate, reg_lambda)
 
 
 if __name__ == '__main__':
