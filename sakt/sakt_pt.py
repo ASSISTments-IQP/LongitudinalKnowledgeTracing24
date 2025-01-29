@@ -232,13 +232,11 @@ class SAKTModel(nn.Module):
                 preds = self(past_exercises, past_responses, current_exercises)
                 loss = self.compute_loss(preds, targets)
 
-                print(preds)
-                print(targets)
                 val_losses.append(loss.item())
                 all_labels.extend(targets.detach().cpu().numpy())
                 all_preds.extend(preds.detach().cpu().numpy())
 
-                print(all_labels)
+                print(len(all_labels))
             except RuntimeError as e:
                 if "out of memory" in str(e):
                     gc.collect()
