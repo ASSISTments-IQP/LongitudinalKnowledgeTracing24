@@ -39,7 +39,7 @@ def objective(trial):
     dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.5)
     learning_rate = trial.suggest_float('learning_rate', 1e-6, 1e-1, log=True)
     reg_lambda = trial.suggest_float('reg_lambda', 1e-6, 1e-2, log=True)
-    num_epochs = trial.suggest_int('num_epochs', 1, 10)
+    num_epochs = trial.suggest_int('num_epochs', 100, 200)
 
     return run_one_fold(data, random.randint(0,1), num_steps, batch_size, d_model, learning_rate, num_epochs, dropout_rate, reg_lambda)
 
