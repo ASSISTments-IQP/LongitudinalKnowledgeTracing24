@@ -73,7 +73,7 @@ if __name__ == '__main__':
         for l in p.starmap(run_one_sample, args):
             res[l[1]] = l[0]
 
-    with open(f'./cross_year_results_{model_type}_{train_year}.json','w') as fout:
+    with open(f'./{model_type}_{train_year}.json','w') as fout:
         json.dump(res,fout)
         fout.close()
 

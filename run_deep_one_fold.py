@@ -64,6 +64,6 @@ if __name__ == '__main__':
 
 	res = run_one_sample(train_sample, test_samps, model_type)
 
-	with open(f'./cy_{model_type}_{train_year}_{sample_num}.json', 'w') as fout:
+	with open(f'./{model_type}_{train_year}_{sample_num}.json', 'w') as fout:
 		json.dump(res, fout)
 		fout.close()
