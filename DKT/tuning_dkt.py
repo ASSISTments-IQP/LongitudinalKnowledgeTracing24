@@ -7,7 +7,7 @@ from multiprocessing import Pool
 
 
 def run_one_fold(train_data, test_data, ns, bs, dm, lr, ne, dr, rl):
-    print((ns,bs,dm,lr,ne))
+    print((ns,bs,dm,lr,ne,dr,rl))
 
     train_data.drop_duplicates(subset=['problem_log_id'])
     test_data.drop_duplicates(subset=['problem_log_id'])
