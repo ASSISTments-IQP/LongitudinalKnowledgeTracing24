@@ -11,8 +11,8 @@ def run_one_sample(train, test_samps, model_type):
 		model = DKT(32, 40, 256, 3e-2)
 		num_epochs = 300
 	elif model_type == 'SAKT-E':
-		model = SAKTModel(70, 64, 288, 8, 0.14, 4e-4, 0.95, feature_col='old_problem_id')
-		num_epochs = 100
+		model = SAKTModel(60, 64, 352, 8, 0.43, 1e-4, 0.7, feature_col='old_problem_id')
+		num_epochs = 23
 	else:
 		model = SAKTModel(70, 64, 288, 8, 0.14, 4e-4, 0.95, feature_col='skill_id')
 		num_epochs = 100
