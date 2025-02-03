@@ -8,25 +8,25 @@ library(ggplot2)
 library(ggh4x)
 library(sandwich)
 library(lmtest)
-library(lm_robust)
-data = read.csv('./Data/results_pt_2.csv')
+#library(lm_robust)
+data = read.csv('./Data/results_pt_3.csv')
 ```
-
 
 ```{r}
 library(dplyr)
-data%>%group_by(model,years_between_train_eval)%>%summarize(auc=mean(auc))%>%ggplot(aes(years_between_train_eval,auc))+#,color=model))
+data%>%group_by(model,years_between)%>%summarize(auc=mean(auc))%>%ggplot(aes(years_between,auc))+#,color=model))
   geom_point()+geom_line()+#geom_smooth(se=FALSE)+
-  facet_wrap(~model,scales="free")
+  facet_wrap(~model,scales = 'free')
   #geom_smooth(method="lm",se=FALSE)
 
-data%>%filter(model=="BKT")%>%group_by(model,years_between_train_eval)%>%summarize(auc=mean(auc))%>%ggplot(aes(years_between_train_eval,auc,color=model))+geom_point()+#geom_smooth(se=FALSE)+
-  geom_smooth(method="lm",se=FALSE)
+data%>%group_by(model,years_between)%>%summarize(ll=mean(ll))%>%ggplot(aes(years_between,ll))+#,color=model))
+  geom_point()+geom_line()+#geom_smooth(se=FALSE)+
+  facet_wrap(~model,scales = 'free')
 
-data%>%ggplot(aes(years_between_train_eval,auc))+geom_jitter()+geom_smooth(se=FALSE,color="red")+
-  geom_smooth(method="lm",se=FALSE,color="blue")+facet_wrap(~model,scales="free")
+data%>%group_by(model,years_between)%>%summarize(f1=mean(f1))%>%ggplot(aes(years_between,f1))+#,color=model))
+  geom_point()+geom_line()+#geom_smooth(se=FALSE)+
+  facet_wrap(~model,scales = 'free')
 ```
-
 
 ```{r}
 mods = unique(data['model'])$model
@@ -34,45 +34,72 @@ pvals = list()
 for (m in mods) {
   sub_df = data[data['model'] == m,]
   print(m)
-  test = cor.test(sub_df$years_between_train_eval,sub_df$auc,method='spearman')
-  print(test)
-  pvals = append(pvals,test$p.value)
+  test_auc = cor.test(sub_df$years_between,sub_df$auc,method='spearman')
+  print(test_auc)
+  test_ll = cor.test(sub_df$years_between,sub_df$ll,method='spearman')
+  print(test_ll)
+  test_f1 = cor.test(sub_df$years_between,sub_df$f1,method='spearman')
+  pvals = append(pvals,test_auc$p.value)
+  pvals = append(pvals,test_ll$p.value)
+  pvals = append(pvals,test_f1$p.value)
 }
 ```
 
 ```{r}
-overall_test = cor.test(data$years_between_train_eval,data$auc,method='spearman')
-overall_test
-pvals = append(pvals,overall_test$p.value)
 p.adjust(pvals,'holm')
 ```
 
-
 ```{r}
-data%>%group_by(model,years_between_train_eval)%>%summarize(auc_m=mean(auc),auc_low=t.test(auc)$conf.int[1], auc_hi=t.test(auc)$conf.int[2])%>%ggplot(aes(years_between_train_eval,auc_m))+#,color=model))
+data%>%group_by(model,years_between)%>%summarize(auc_m=mean(auc),auc_low=t.test(auc)$conf.int[1], auc_hi=t.test(auc)$conf.int[2])%>%ggplot(aes(years_between,auc_m))+#,color=model))
   geom_point()+geom_line()+geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.2))+#geom_smooth(se=FALSE)+
-  facet_wrap(~model,scales="free")
+  facet_wrap(~model)
 
 t.test(data$auc)$conf.int[2]
 
-int_tib = data%>%group_by(model,years_between_train_eval)%>%summarize(auc_m=mean(auc),auc_low=t.test(auc)$conf.int[1], auc_hi=t.test(auc)$conf.int[2])
+int_tib = data%>%group_by(model,years_between)%>%summarize(auc_m=mean(auc),auc_low=t.test(auc)$conf.int[1], auc_hi=t.test(auc)$conf.int[2],ll_m=mean(ll),ll_low=t.test(ll)$conf.int[1],ll_hi=t.test(ll)$conf.int[2],f1_m=mean(f1),f1_low=t.test(f1)$conf.int[1],f1_hi=t.test(f1)$conf.int[2])
 ```
-```{r}
-a_des = "
-  AABBB
-  CCDDD
-  #EEE#
-"
 
-plo = ggplot(int_tib, aes(x=years_between_train_eval,y=auc_m))+
+```{r}
+ggplot(int_tib, aes(x=years_between,y=auc_m))+
   geom_point(aes(color=model))+geom_line(aes(color=model))+
   geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.2,color=model))+
-  facet_wrap(~model,scales='free',ncol=2)+
+  facet_wrap(~model,scales='free')+
   #ggh4x::facet_manual(~model,scales="free",design=a_des)+
   theme(legend.position='none')+
   labs(y='AUC',x='Years between Training & Evaluation Year')
 
-ggsave(plo,filename='./diff_with_error_bars.png',width=4,height=5)
+ggplot(int_tib, aes(x=years_between,y=auc_m))+
+  geom_point(aes(color=model))+geom_line(aes(color=model))+
+  #ggh4x::facet_manual(~model,scales="free",design=a_des)+
+  labs(y='AUC',x='Years between Training & Evaluation Year')
+
+ggplot(int_tib, aes(x=years_between,y=ll_m))+
+  geom_point(aes(color=model))+geom_line(aes(color=model))+
+  geom_errorbar(aes(ymin=ll_low,ymax=ll_hi,width=.2,color=model))+
+  facet_wrap(~model,scales='free')+
+  #ggh4x::facet_manual(~model,scales="free",design=a_des)+
+  theme(legend.position='none')+
+  labs(y='Log Loss',x='Years between Training & Evaluation Year')
+
+ggplot(int_tib, aes(x=years_between,y=ll_m))+
+  geom_point(aes(color=model))+geom_line(aes(color=model))+
+  #ggh4x::facet_manual(~model,scales="free",design=a_des)+
+  labs(y='Log Loss',x='Years between Training & Evaluation Year')
+
+ggplot(int_tib, aes(x=years_between,y=f1_m))+
+  geom_point(aes(color=model))+geom_line(aes(color=model))+
+  geom_errorbar(aes(ymin=f1_low,ymax=f1_hi,width=.2,color=model))+
+  facet_wrap(~model,scales='free')+
+  #ggh4x::facet_manual(~model,scales="free",design=a_des)+
+  theme(legend.position='none')+
+  labs(y='F1 Score',x='Years between Training & Evaluation Year')
+
+ggplot(int_tib, aes(x=years_between,y=f1_m))+
+  geom_point(aes(color=model))+geom_line(aes(color=model))+
+  #ggh4x::facet_manual(~model,scales="free",design=a_des)+
+  labs(y='F1 Score',x='Years between Training & Evaluation Year')
+
+#ggsave(plo,filename='./diff_with_error_bars.png',width=4,height=5)
 ```
 
 ```{r}
@@ -80,7 +107,6 @@ ggplot(int_tib, aes(x=years_between_train_eval,y=auc_m))+
   geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.1,color=model))+
   geom_point(aes(color=model))+geom_line(aes(color=model))
 ```
-
 
 ```{r}
 param_nums = read.csv('./Data/param_numbers.csv')
@@ -108,12 +134,3 @@ plo1=ggplot(all_sakt,aes(years_between_train_eval,auc,color=model))+geom_point(a
 ggsave(plo1,filename='./sakt_line.png',width=4,height=3)
   
 ```
-
-
-
-
-
-
-
-
-
