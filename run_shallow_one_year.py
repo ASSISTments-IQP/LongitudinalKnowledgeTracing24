@@ -1,5 +1,5 @@
 from PFA.PFA_Model import PFA
-from bkt.BKT_Model import BKTModel
+from BKT.BKT_Model import BKTModel
 from multiprocessing import Pool
 from tqdm import tqdm
 import pandas as pd

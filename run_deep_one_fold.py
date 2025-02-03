@@ -1,5 +1,5 @@
 from DKT.DKT_pt import DKT
-from sakt.sakt_pt import SAKTModel
+from SAKT.sakt_pt import SAKTModel
 import pandas as pd
 import sys, json
 

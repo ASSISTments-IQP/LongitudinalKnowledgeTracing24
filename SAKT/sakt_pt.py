@@ -79,7 +79,7 @@ class SAKTModel(nn.Module):
         )
         self.norm2 = nn.LayerNorm(d_model)
         self.output_layer = nn.Linear(d_model, 1)
-        self.loss_fn = nn.BCEWithLogitsLoss()
+        self.loss_fn = nn.BCELoss()
 
         # These attributes will be set during training
         self.exercise_map = None
@@ -126,7 +126,8 @@ class SAKTModel(nn.Module):
         out1 = self.norm1(attn_output + query.permute(1, 0, 2))  # Shape: (batch_size, 1, d_model)
         ffn_out = self.ffn(out1)                                 # Shape: (batch_size, 1, d_model)
         out2 = self.norm2(ffn_out + out1)                        # Shape: (batch_size, 1, d_model)
-        output = self.output_layer(out2).squeeze(-1).squeeze(-1) # Shape: (batch_size)
+        out3 = self.output_layer(out2).squeeze(-1).squeeze(-1) # Shape: (batch_size)
+        output = torch.sigmoid(out3)
         return output
 
     def compute_loss(self, predictions, targets):
