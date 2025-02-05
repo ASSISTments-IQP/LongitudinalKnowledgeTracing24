@@ -8,12 +8,13 @@ library(ggplot2)
 library(ggh4x)
 library(sandwich)
 library(lmtest)
+library(MASS)
+library(dplyr)
 #library(lm_robust)
 data = read.csv('./Data/results_pt_3.csv')
 ```
 
 ```{r}
-library(dplyr)
 data%>%group_by(model,years_between)%>%summarize(auc=mean(auc))%>%ggplot(aes(years_between,auc))+#,color=model))
   geom_point()+geom_line()+#geom_smooth(se=FALSE)+
   facet_wrap(~model,scales = 'free')
@@ -103,8 +104,8 @@ ggplot(int_tib, aes(x=years_between,y=f1_m))+
 ```
 
 ```{r}
-ggplot(int_tib, aes(x=years_between_train_eval,y=auc_m))+
-  geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.1,color=model))+
+ggplot(int_tib, aes(x=years_between,y=auc_m))+
+  geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.05,color=model))+
   geom_point(aes(color=model))+geom_line(aes(color=model))
 ```
 
@@ -119,18 +120,44 @@ sakt_kc = data[data['model'] == 'SAKT-KC',]
 
 all_sakt = rbind(sakt_e,sakt_kc)
 
+sakt_mod = lm(rank(auc)~years_between*model,data=all_sakt)
 summary(sakt_mod)
-
-sakt_mod = lm(auc~years_between_train_eval*model,data=all_sakt)
 coeftest(sakt_mod,vcov.=vcovHC)
 plot(sakt_mod,which=c(1,3))
 
 pred <- predict(sakt_mod)
-plo1=ggplot(all_sakt,aes(years_between_train_eval,auc,color=model))+geom_point(alpha=0.2)+
+ggplot(all_sakt,aes(years_between,auc,color=model))+geom_point(alpha=0.2)+
   geom_line(aes(y=pred))+
   labs(y='AUC',x='Years between Training & Evaluation Year')+
   scale_color_discrete(name="Model")
 
-ggsave(plo1,filename='./sakt_line.png',width=4,height=3)
+#ggsave(plo1,filename='./sakt_line.png',width=4,height=3)
   
 ```
+
+```{r}
+bc = boxcox(all_sakt$auc ~ all_sakt$years_between*all_sakt$model, lambda = seq(-10,0,1/10))
+bc$x[which.max(bc$y)]
+```
+
+```{r}
+bc_transform = function(y, ld) {
+  if (ld == 0) {
+    log(y)
+  }
+  else {
+    ((y^ld) - 1) / ld
+  }
+}
+
+hist()
+
+
+sakt_mod = lm(bc_transform(auc, -4.6)~years_between*model,data=all_sakt)
+summary(sakt_mod)
+coeftest(sakt_mod,vcov.=vcovHC)
+plot(sakt_mod,which=c(1,3))
+
+```
+
+
