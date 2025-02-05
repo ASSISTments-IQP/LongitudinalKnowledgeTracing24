@@ -186,10 +186,10 @@ if __name__ == '__main__':
 		for key, val in val_d.items():
 			res.append(['BKT', (len(val.skill_id.unique()) + 1) * 5])
 			res.append(['PFA', (len(val.skill_id.unique()) + 1) * 3 + 1])
-			dummy_dkt = DKTNet((len(val.skill_id.unique()) + 1) * 2, 256, 1)
+			dummy_dkt = DKTNet((len(val.skill_id.unique()) + 1) * 2, 96, 1)
 			res.append(['DKT', sum(p.numel() for p in dummy_dkt.parameters() if p.requires_grad)])
-			dummy_sakt_e = DSAKTModel(70, 64, 288, 8, 0.14, 4e-4, 0.95, feature_col='old_problem_id')
-			dummy_sakt_kc = DSAKTModel(70, 64, 288, 8, 0.14, 4e-4, 0.95, feature_col='skill_id')
+			dummy_sakt_e = DSAKTModel(60, 64, 352, 8, 0.43, 1e-4, 0.7, feature_col='old_problem_id')
+			dummy_sakt_kc = DSAKTModel(100, 48, 128, 16, 0.188, 1e-4, 0.868, feature_col='skill_id')
 			res.append(['SAKT-E', dummy_sakt_e.fit(val)])
 			res.append(['SAKT-KC', dummy_sakt_kc.fit(val)])
 
