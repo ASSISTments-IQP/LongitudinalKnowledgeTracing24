@@ -7,10 +7,10 @@ output: html_document
 library(ggplot2)
 library(ggh4x)
 library(sandwich)
-#library(lmtest)
+library(lmtest)
 library(MASS)
 library(dplyr)
-#library(rstatix)
+library(rstatix)
 #library(lm_robust)
 data = read.csv('./Data/results_pt_3.csv')
 ```
@@ -173,15 +173,13 @@ TukeyHSD(res_aov)
 ```
 
 ```{r}
-data_new <- data %>% mutate (
-  bkt_auc = ifelse(model == "BKT", auc, NA),
-  pfa_auc = ifelse(model == "PFA", auc, NA),
-  dkt_auc = ifelse(model == "DKT", auc, NA),
-  sakt_kc_auc = ifelse(model == "SAKT-KC", auc, NA),
-  sakt_e_auc = ifelse(model == "SAKT-E", auc, NA)
-) %>% 
+data4 = read.csv('Data/results_pt_4.csv')
 
-select (-auc)
+auc_mat = cor_mat(data4, vars  = c('bkt_auc', 'pfa_auc', 'dkt_auc', 'sakt_kc_auc', 'sakt_e_auc', 'y_btwn'), method = 'spearman')
+ll_mat = cor_mat(data4, vars  = c('bkt_ll', 'pfa_ll', 'dkt_ll', 'sakt_kc_ll', 'sakt_e_ll', 'y_btwn'), method = 'spearman')
+f1_mat = cor_mat(data4, vars  = c('bkt_f1', 'pfa_f1', 'dkt_f1', 'sakt_kc_f1', 'sakt_e_f1', 'y_btwn'), method = 'spearman')
+```
 
-data_new
+```{r}
+cor_get_pval(auc_mat)
 ```
