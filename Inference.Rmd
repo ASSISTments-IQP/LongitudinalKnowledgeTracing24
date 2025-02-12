@@ -110,13 +110,15 @@ ggplot(int_tib, aes(x=years_between,y=auc_m))+
 ```
 
 ```{r}
-param_nums = read.csv('./Data/param_numbers.csv')
-param_nums%>%group_by(model)%>%summarize(avg_params=mean(num_trainable_params))
+#param_nums = read.csv('./Data/param_numbers.csv')
+#param_nums%>%group_by(model)%>%summarize(avg_params=mean(num_trainable_params))
 ```
 
 ```{r}
 sakt_e = data[data['model'] == 'SAKT-E',]
 sakt_kc = data[data['model'] == 'SAKT-KC',]
+
+cor.test(sakt_e$auc,sakt_kc$auc,method='spearman')
 
 all_sakt = rbind(sakt_e,sakt_kc)
 
@@ -136,7 +138,7 @@ ggplot(all_sakt,aes(years_between,auc,color=model))+geom_point(alpha=0.2)+
 ```
 
 ```{r}
-bc = boxcox(all_sakt$auc ~ all_sakt$years_between*all_sakt$model, lambda = seq(-10,0,1/10))
+bc = boxcox(all_sakt$auc ~ all_sakt$years_between*all_sakt$model, lambda = seq(-10,0,1/20))
 bc$x[which.max(bc$y)]
 ```
 
@@ -150,7 +152,9 @@ bc_transform = function(y, ld) {
   }
 }
 
-hist()
+ggplot(all_sakt, aes(auc,fill=model))+geom_histogram()
+
+ggplot(all_sakt, aes(bc_transform(auc,-4.6),fill=model))+geom_histogram()
 
 
 sakt_mod = lm(bc_transform(auc, -4.6)~years_between*model,data=all_sakt)
@@ -160,4 +164,9 @@ plot(sakt_mod,which=c(1,3))
 
 ```
 
-
+```{r}
+all_bkt = data[data['model'] == 'BKT',]
+res_aov = aov(auc~factor(years_between), data=all_bkt)
+summary(res_aov)
+TukeyHSD(res_aov)
+```
