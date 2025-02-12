@@ -7,9 +7,10 @@ output: html_document
 library(ggplot2)
 library(ggh4x)
 library(sandwich)
-library(lmtest)
+#library(lmtest)
 library(MASS)
 library(dplyr)
+#library(rstatix)
 #library(lm_robust)
 data = read.csv('./Data/results_pt_3.csv')
 ```
@@ -169,4 +170,18 @@ all_bkt = data[data['model'] == 'BKT',]
 res_aov = aov(auc~factor(years_between), data=all_bkt)
 summary(res_aov)
 TukeyHSD(res_aov)
+```
+
+```{r}
+data_new <- data %>% mutate (
+  bkt_auc = ifelse(model == "BKT", auc, NA),
+  pfa_auc = ifelse(model == "PFA", auc, NA),
+  dkt_auc = ifelse(model == "DKT", auc, NA),
+  sakt_kc_auc = ifelse(model == "SAKT-KC", auc, NA),
+  sakt_e_auc = ifelse(model == "SAKT-E", auc, NA)
+) %>% 
+
+select (-auc)
+
+data_new
 ```
