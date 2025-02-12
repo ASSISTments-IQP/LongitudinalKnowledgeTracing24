@@ -181,5 +181,31 @@ f1_mat = cor_mat(data4, vars  = c('bkt_f1', 'pfa_f1', 'dkt_f1', 'sakt_kc_f1', 's
 ```
 
 ```{r}
-cor_get_pval(auc_mat)
+auc_mat
+```
+
+
+```{r}
+rhocomparison = function(pjk, pjh, pkh) {
+  n = 150
+  cov = pkh * (1 - pjk^2 - pjh ^2) - (1/2 * (pjk * pjh)) * (1 - pjk^2 - pjh^2 * pkh^2)
+  asympvar = cov / ((1 - pjk^2) * (1-pjh^2))
+  zjk = 0.5 * log ((1 + pjk) / (1 - pjk))
+  zjh = 0.5 * log ((1 + pjh) / (1 - pjh))
+  Zstar = sqrt(n - 3 )* (zjk - zjh) / (sqrt(2 - 2 * asympvar))
+  lt = Zstar < 0
+  p = 2 * pnorm(Zstar, lower.tail = lt) 
+  return (p)
+}
+
+for (i in 2:6){
+  for (j in i:6){
+    pjk = pull(auc_mat[i,7])
+    pjh = pull(auc_mat[j,7])
+    pkh = pull(auc_mat[i,j])
+    print(pkh)
+#    print(rhocomparison(pjk,pjh,pkh))
+  }
+}
+
 ```
