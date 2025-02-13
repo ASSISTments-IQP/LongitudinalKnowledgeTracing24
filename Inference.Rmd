@@ -178,11 +178,27 @@ data4 = read.csv('Data/results_pt_4.csv')
 auc_mat = cor_mat(data4, vars  = c('bkt_auc', 'pfa_auc', 'dkt_auc', 'sakt_kc_auc', 'sakt_e_auc', 'y_btwn'), method = 'spearman')
 ll_mat = cor_mat(data4, vars  = c('bkt_ll', 'pfa_ll', 'dkt_ll', 'sakt_kc_ll', 'sakt_e_ll', 'y_btwn'), method = 'spearman')
 f1_mat = cor_mat(data4, vars  = c('bkt_f1', 'pfa_f1', 'dkt_f1', 'sakt_kc_f1', 'sakt_e_f1', 'y_btwn'), method = 'spearman')
+auc_mat
 ```
+
 
 ```{r}
 auc_mat
 ```
+```{r}
+for (i in 1:4){
+  for (j in (i+2):6){
+    pjk = pull(auc_mat[i,7])
+    pjh = pull(auc_mat[j-1,7])
+    pkh = pull(auc_mat[i,j])
+    
+    print(pjh)
+  }
+}
+```
+order of comparisons:
+ - BKT/PFA
+ 
 
 
 ```{r}
@@ -198,13 +214,14 @@ rhocomparison = function(pjk, pjh, pkh) {
   return (p)
 }
 
-for (i in 2:6){
-  for (j in i:6){
-    pjk = pull(auc_mat[i,7])
-    pjh = pull(auc_mat[j,7])
-    pkh = pull(auc_mat[i,j])
-    print(pkh)
-#    print(rhocomparison(pjk,pjh,pkh))
+pval_walk = function(cor_matrix)
+for (i in 1:4){
+  for (j in (i+2):6){
+    pjk = pull(cor_matrix[i,7])
+    pjh = pull(cor_matrix[j-1,7])
+    pkh = pull(cor_matrix[i,j])
+    
+    print(rhocomparison(pjk,pjh,pkh))
   }
 }
 
