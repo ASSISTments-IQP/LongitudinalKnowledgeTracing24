@@ -16,8 +16,6 @@ def test_distributional_similarity(base_df: pd.DataFrame, comparison_df: pd.Data
     for j in tqdm(range(n_feats), desc="KS per feat" ):
         a = base_arr[:, j]
         b = comp_arr[:, j]
-        a = a[np.isfinite(a)]
-        b = b[np.isfinite(b)]
         if len(a) == 0 or len(b) == 0:
             ks_stats[j] = np.nan
             p_vals[j] = np.nan
@@ -88,6 +86,6 @@ def test_distributional_similarity(base_df: pd.DataFrame, comparison_df: pd.Data
 #fake test case
 
 if __name__ == "__main__":
-    df_1 = pd.read_csv(f'../Data/samples/{2023}/sample{3}.csv')
-    df_2 = pd.read_csv(f'../Data/samples/{2024}/sample{7}.csv')
+    df_1 = pd.read_csv(f'KT/22-23/sample3.csv')
+    df_2 = pd.read_csv(f'KT/23-24/sample7.csv')
     ks_test_res = test_distributional_similarity(df_1, df_2, plot = True)
