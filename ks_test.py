@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
             cur_pval, cur_ks = test_distributional_similarity(train, test, fname=f'./plots/{y}-{str(train_samp)}')
             pvals.append(cur_pval)
-            ks_stats.append(ks_stats)
+            ks_stats.append(cur_ks)
 
     # CY tests
     for train_y_idx in range(4):
