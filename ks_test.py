@@ -101,7 +101,7 @@ if __name__ == "__main__":
                 ks_stats.append(cur_ks)
 
     pvals = np.concatenate(pvals)
-    print(ks_stats)
+    print(sum(len(a) for a in ks_stats))
     ks_stats = np.concatenate(ks_stats)
 
     valid = np.isfinite(pvals)
