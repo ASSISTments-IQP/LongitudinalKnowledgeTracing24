@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
             test = pd.concat(test)
 
-            cur_pval, cur_ks = test_distributional_similarity(train, test, fname=f'{y}-{str(train_samp)}')
+            cur_pval, cur_ks = test_distributional_similarity(train, test, fname=f'./plots/{y}-{str(train_samp)}')
             pvals.append(cur_pval)
             ks_stats.append(ks_stats)
 
@@ -96,11 +96,12 @@ if __name__ == "__main__":
         for test_y_idx in range(train_y_idx,5):
             test_year = years[test_y_idx]
             for s in tqdm(sample_nums,desc=f'CY {train_year}/{test_year}'):
-                cur_pval, cur_ks = test_distributional_similarity(sample_dict[train_year][s],sample_dict[test_year][s], fname=f'{train_year}-{test_year}')
+                cur_pval, cur_ks = test_distributional_similarity(sample_dict[train_year][s],sample_dict[test_year][s], fname=f'./plots{train_year}-{test_year}')
                 pvals.append(cur_pval)
                 ks_stats.append(cur_ks)
 
     pvals = np.concatenate(pvals)
+    print(len(ks_stats))
     ks_stats = np.concatenate(ks_stats)
 
     valid = np.isfinite(pvals)
