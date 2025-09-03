@@ -68,7 +68,7 @@ if __name__ == "__main__":
     for year in years:
         y_dict = {}
         for n in sample_nums:
-            y_dict[n] = pd.read_csv(f'./Data/samples/{year}/sample{str(n)}.csv')[['skill_id','user_xid','old_problem_id','discrete_score']]
+            y_dict[n] = pd.read_csv(f'./Data/samples/{year}/sample{str(n)}.csv')[['skill_id','old_problem_id','discrete_score']]
         sample_dict[year] = y_dict
 
     # WY tests
