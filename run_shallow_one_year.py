@@ -54,7 +54,7 @@ if __name__ == '__main__':
         s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
         train_dict[i] = s1
 
-    test_years = year_list[year_list.index(train_year):]
+    test_years = year_list.pop([year_list.index(train_year)])
 
     print('Loading year samples')
     test_dict = {}
