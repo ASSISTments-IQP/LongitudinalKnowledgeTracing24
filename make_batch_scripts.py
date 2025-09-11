@@ -1,5 +1,6 @@
 if __name__ == '__main__':
-	years = ['19-20','20-21','21-22','22-23','23-24']
+	os.makedirs('./job_start_scripts/', exists = True)
+    years = ['19-20','20-21','21-22','22-23','23-24']
 	models_shallow = ['BKT', 'PFA']
 	models_deep = ['DKT', 'SAKT-KC', 'SAKT-E']
 	sample_nums = range(1, 11)
@@ -12,7 +13,6 @@ if __name__ == '__main__':
 						line = line.replace('MODEL_TYPE', m)
 						line = line.replace('YEAR', y)
 						fout.write(line)
-
 
 	for m in models_deep:
 		for y in years:

@@ -3,9 +3,11 @@
 .venv/
 *.csv
 /Data
+/Data_bak
 /Data/samples
 */__pycache__
 /DKT/DKT_model.pth
 lkt-env/
 runs/
 .Rproj.user
+job_start_scripts

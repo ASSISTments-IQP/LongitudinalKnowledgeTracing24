@@ -51,21 +51,21 @@ if __name__ == '__main__':
 
     train_dict = {}
     for i in range(1, 11):
-        s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
+        s1 = pd.read_csv(f'Data/{train_year}/sample{i}.csv')
         train_dict[i] = s1
-
-    test_years = year_list.pop([year_list.index(train_year)])
-
+    test_years = year_list.copy()
+    test_years.pop(year_list.index(train_year))
+    # print(f'test_years len: {len(test_years)}')
     print('Loading year samples')
     test_dict = {}
     for y in tqdm(test_years):
+        print(f"y: {y}")
         y_dict = {}
         for i in range(1,11):
-            s1 = pd.read_csv(f'../Data/samples/{y}/sample{i}.csv')
+            s1 = pd.read_csv(f'Data/{y}/sample{i}.csv')
             y_dict[i] = s1
 
         test_dict[y] = y_dict
-
 
     res = {}
     args = zip([(model_type, train_year)] * 10, [train_dict] * 10, [test_dict] * 10, range(1,11))
