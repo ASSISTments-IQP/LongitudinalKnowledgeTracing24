@@ -10,4 +10,5 @@
 #SBATCH --gres=gpu:1
 #SBATCH -C "A100|H100|H200"
 module load cuda
-uv run run_deep_one_fold.py MODEL_TYPE YEAR FOLD_NUM
+source ~/myenvs/lkt-env/bin/activate
+python ../run_deep_one_fold.py MODEL_TYPE YEAR FOLD_NUM

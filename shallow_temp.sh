@@ -8,4 +8,5 @@
 #SBATCH -p short
 #SBATCH -t 24:00:00
 cd ..
-uv run run_shallow_one_year.py MODEL_TYPE YEAR
+source ~/myenvs/lkt-env/bin/activate
+python run_shallow_one_year.py MODEL_TYPE YEAR

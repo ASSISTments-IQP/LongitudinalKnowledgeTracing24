@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
 	train_dict = {}
 	for i in range(1, 11):
-		s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
+		s1 = pd.read_csv(f'../Data/{train_year}/sample{i}.csv')
 		train_dict[i] = s1
 
 	train_sample = train_dict.pop(sample_num)
@@ -59,7 +59,7 @@ if __name__ == '__main__':
 	test_samps = {}
 	test_samps[train_year] = wy_test
 	for y in test_years:
-		test_samps[y] = pd.read_csv(f'../Data/samples/{y}/sample{sample_num}.csv')
+		test_samps[y] = pd.read_csv(f'../Data/{y}/sample{sample_num}.csv')
 	res = run_one_sample(train_sample, test_samps, model_type)
 
 	with open(f'./{model_type}_{train_year}_{sample_num}.json', 'w') as fout:
