@@ -27,6 +27,7 @@ def run_one_sample(train, test_samps, model_type):
 		}
 	return res
 
+
 if __name__ == '__main__':
 	year_list = ['19-20', '20-21', '21-22', '22-23', '23-24']
 	if len(sys.argv) != 4:
@@ -55,13 +56,13 @@ if __name__ == '__main__':
 	train_sample = train_dict.pop(sample_num)
 	wy_test = pd.concat(train_dict)
 	test_years = year_list.copy()
-    test_years.pop(year_list.index(train_year))
-	test_samps = {}
-	test_samps[train_year] = wy_test
-	for y in test_years:
-		test_samps[y] = pd.read_csv(f'../Data/{y}/sample{sample_num}.csv')
-	res = run_one_sample(train_sample, test_samps, model_type)
+test_years.pop(year_list.index(train_year))
+test_samps = {}
+test_samps[train_year] = wy_test
+for y in test_years:
+	test_samps[y] = pd.read_csv(f'../Data/{y}/sample{sample_num}.csv')
+res = run_one_sample(train_sample, test_samps, model_type)
 
-	with open(f'./{model_type}_{train_year}_{sample_num}.json', 'w') as fout:
-		json.dump(res, fout)
-		fout.close()
+with open(f'./{model_type}_{train_year}_{sample_num}.json', 'w') as fout:
+	json.dump(res, fout)
+	fout.close()
