@@ -6,7 +6,7 @@ import sys, json
 model_list = ['DKT', 'SAKT-E', 'SAKT-KC']
 
 
-def run_one_sample(train, test_samps, model_type):
+def run_one_sample(train, test_samps, model_type, fp):
 	if model_type == 'DKT':
 		model = DKT(16, 40, 96, 2e-3, 0.278, 1.4e-5)
 		num_epochs = 100
@@ -17,6 +17,9 @@ def run_one_sample(train, test_samps, model_type):
 		model = SAKTModel(100, 48, 128, 16, 0.188, 1e-4, 0.868, feature_col='skill_id')
 		num_epochs = 25
 	model.fit(train, num_epochs)
+
+	model.save()
+
 	res = {}
 	for year, samp in test_samps.items():
 		eval_tup = model.evaluate(samp)
@@ -61,7 +64,8 @@ test_samps = {}
 test_samps[train_year] = wy_test
 for y in test_years:
 	test_samps[y] = pd.read_csv(f'../Data/{y}/sample{sample_num}.csv')
-res = run_one_sample(train_sample, test_samps, model_type)
+fp = f'../models/{model_type}/{train_year}/{sample_num}.pth'
+res = run_one_sample(train_sample, test_samps, model_type, fp)
 
 with open(f'./{model_type}_{train_year}_{sample_num}.json', 'w') as fout:
 	json.dump(res, fout)
