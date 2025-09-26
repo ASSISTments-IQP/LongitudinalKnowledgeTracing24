@@ -31,7 +31,7 @@ def run_one_sample(train, test_samps, model_type, fp):
 	with open(f'./{model_type}_{train_year}_{sample_num}.json', 'w') as fout:
 		json.dump(res, fout)
 
-	model.save()
+	model.save(fp)
 	return res
 
 
