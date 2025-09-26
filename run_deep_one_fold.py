@@ -18,7 +18,6 @@ def run_one_sample(train, test_samps, model_type, fp):
 		num_epochs = 25
 	model.fit(train, num_epochs)
 
-	model.save()
 
 	res = {}
 	for year, samp in test_samps.items():
@@ -28,6 +27,11 @@ def run_one_sample(train, test_samps, model_type, fp):
 			'll': eval_tup[1],
 			'f1': eval_tup[2]
 		}
+
+	with open(f'./{model_type}_{train_year}_{sample_num}.json', 'w') as fout:
+		json.dump(res, fout)
+
+	model.save()
 	return res
 
 
@@ -66,7 +70,3 @@ for y in test_years:
 	test_samps[y] = pd.read_csv(f'../Data/{y}/sample{sample_num}.csv')
 fp = f'../models/{model_type}/{train_year}/{sample_num}.pth'
 res = run_one_sample(train_sample, test_samps, model_type, fp)
-
-with open(f'./{model_type}_{train_year}_{sample_num}.json', 'w') as fout:
-	json.dump(res, fout)
-	fout.close()
