@@ -1,5 +1,5 @@
 import optuna
-from DKT.DKT_pt import DKT
+from DKT_pt import DKT
 import pandas as pd
 import numpy as np
 import random
