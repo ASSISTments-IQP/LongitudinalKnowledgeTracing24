@@ -1,5 +1,5 @@
 import optuna
-from DKT_pt import DKT
+from DKT.DKT_pt import DKT
 import pandas as pd
 import numpy as np
 import random
@@ -21,7 +21,7 @@ def run_one_fold(train_data, test_data, ns, bs, dm, lr, ne, dr, rl):
 
 
 def objective(trial):
-    df = pd.read_csv('../Data/samples/validation_sample.csv')
+    df = pd.read_csv('sample1.csv')
 
     alogs = df.assignment_log_id.unique()
     np.random.shuffle(alogs)
