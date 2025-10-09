@@ -1,9 +1,8 @@
 import numpy as np
 from sklearn.metrics import log_loss, roc_auc_score, f1_score
-from Model import Model
 from pyBKT.models import Model
 
-class pyBKT_wrapper(Model):
+class pyBKT_wrapper():
     def __init__(self):
         self.skills = []
         self.pyBKT_Model = None
