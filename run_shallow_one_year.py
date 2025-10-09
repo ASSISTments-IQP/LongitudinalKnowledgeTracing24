@@ -1,5 +1,5 @@
 from PFA.PFA_Model import PFA
-from BKT.BKT_Model import BKTModel
+from BKT.pyBKT_Model import pyBKT_wrapper
 from multiprocessing import Pool
 from tqdm import tqdm
 import pandas as pd
@@ -17,7 +17,7 @@ def run_one_sample(model_args, train_samples, test_samples, sample_num):
         tests[year] = (samps[sample_num])
 
     if model_type == 'BKT':
-        model = BKTModel()
+        model = pyBKT_wrapper()
     if model_type == 'PFA':
         model = PFA()
 
