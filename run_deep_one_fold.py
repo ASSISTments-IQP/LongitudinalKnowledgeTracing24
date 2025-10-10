@@ -8,7 +8,7 @@ model_list = ['DKT', 'SAKT-E', 'SAKT-KC']
 
 def run_one_sample(train, test_samps, model_type, fp):
 	if model_type == 'DKT':
-		model = DKT(16, 40, 96, 2e-3, 0.278, 1.4e-5)
+		model = DKT(32, 40, 96, 2e-3, 0.278, 1.4e-5)
 		num_epochs = 100
 	elif model_type == 'SAKT-E':
 		model = SAKTModel(60, 64, 352, 8, 0.43, 1e-4, 0.7, feature_col='old_problem_id')
