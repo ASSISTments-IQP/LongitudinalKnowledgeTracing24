@@ -45,7 +45,7 @@ class Net(nn.Module):
         self.fc = nn.Linear(self.hidden_dim, num_questions)
 
     def forward(self, x):
-        lstm_out, _ = self.lstm(x)
+        lstm_out, candidate_out = self.lstm(x)
         out = self.dropout(lstm_out)
         res = self.fc(out)
         return res
@@ -189,8 +189,8 @@ class DKT:
                         )
                         if len(pred) > 0:
                             pred_probs = torch.sigmoid(pred)
-                            all_pred.append(pred_probs.detach().cpu())
-                            all_target.append(truth.detach().cpu().float())
+                            all_pred.append(pred_probs)
+                            all_target.append(truth.float().to(pred_probs.device))
                         del pred, truth
 
                     del batch, integrated_pred
