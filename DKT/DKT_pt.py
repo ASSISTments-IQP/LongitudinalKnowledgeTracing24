@@ -14,18 +14,21 @@ from sklearn.metrics import roc_auc_score, log_loss, f1_score
 
 def setup_multiprocessing():
     try:
-        mp.set_start_method('spawn', force=True)
+        mp.set_start_method("spawn", force=True)
     except RuntimeError:
-        pass 
+        pass
 
 
 class DKTDataset(Dataset):
     def __init__(self, sequences):
-        self.sequences = [seq.astype(np.float32) if isinstance(seq, np.ndarray) else seq for seq in sequences]
-    
+        self.sequences = [
+            seq.astype(np.float32) if isinstance(seq, np.ndarray) else seq
+            for seq in sequences
+        ]
+
     def __len__(self):
         return len(self.sequences)
-    
+
     def __getitem__(self, idx):
         return torch.from_numpy(self.sequences[idx]).float()
 
@@ -44,9 +47,8 @@ class Net(nn.Module):
     def forward(self, x):
         lstm_out, _ = self.lstm(x)
         out = self.dropout(lstm_out)
-        res = self.fc(out)  
+        res = self.fc(out)
         return res
-
 
 def process_raw_pred(raw_question_matrix, raw_pred, num_questions: int) -> tuple:
     questions = torch.nonzero(raw_question_matrix)[1:, 1] % num_questions
@@ -88,17 +90,21 @@ class DKT:
         self.num_workers = num_workers
         self.gradient_accumulation_steps = gradient_accumulation_steps
         self.use_mixed_precision = use_mixed_precision
-        
+
         try:
-            mp.set_start_method('spawn', force=True)
+            mp.set_start_method("spawn", force=True)
         except RuntimeError:
-            pass 
-            
+            pass
+
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_num)
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-        self.scaler = GradScaler() if self.use_mixed_precision and torch.cuda.is_available() else None
+
+        self.scaler = (
+            GradScaler()
+            if self.use_mixed_precision and torch.cuda.is_available()
+            else None
+        )
 
     def preprocess(self, df, fitting=False):
         if fitting:
@@ -109,25 +115,20 @@ class DKT:
         df.drop_duplicates("problem_log_id", inplace=True)
         df.sort_values(by=["user_xid", "start_time"], inplace=True)
 
-
         def sequence_generator():
             for name, group in df.groupby(by="user_xid"):
                 group_len = group.shape[0]
-
-                if group_len < 5:
-                    continue
-                    
                 mod = (
                     0
                     if group_len % self.num_steps == 0
                     else (self.num_steps - group_len % self.num_steps)
                 )
 
-                oh = np.zeros(shape=(group_len + mod, self.vocab_size * 2), dtype=np.float32)
-                
+                oh = np.zeros(
+                    shape=(group_len + mod, self.vocab_size * 2), dtype=np.float32
+                )
+
                 for i, (idx, row) in enumerate(group.iterrows()):
-                    if i >= group_len:
-                        break
                     skill = row["skill_id"]
                     corr = row["discrete_score"]
                     found_vocab = self.check_vocab(skill)
@@ -137,29 +138,24 @@ class DKT:
                 seq_reshaped = oh.reshape(-1, self.num_steps, 2 * self.vocab_size)
                 for seq_chunk in seq_reshaped:
                     yield seq_chunk
-   
+
                 del oh, seq_reshaped
 
         sequences_list = []
-        batch_count = 0
         for seq in tqdm(sequence_generator(), desc="Processing sequences"):
             sequences_list.append(seq)
-            batch_count += 1
-
-            if batch_count >= 1000:  
-                break
 
         gc.collect()
-        
+
         dataset = DKTDataset(sequences_list)
         d_l = DataLoader(
-            dataset, 
+            dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers=0,
-            pin_memory=False,  
-            persistent_workers=False,  
-            drop_last=True
+            num_workers=self.num_workers,
+            pin_memory=torch.cuda.is_available(),
+            persistent_workers=(self.num_workers > 0),
+            drop_last=False,
         )
         return d_l
 
@@ -169,119 +165,89 @@ class DKT:
             self.vocab_size, self.hidden_size, self.num_layers, self.dropout_rate
         )
         self.dkt_model.to(self.device)
-        loss_function = nn.BCEWithLogitsLoss()
+        loss_function = nn.BCELoss()
         optimizer = torch.optim.Adam(self.dkt_model.parameters(), lr=self.lr)
 
-        best_loss = float('inf')
+        best_loss = float("inf")
         pat_count = 0
+        final_all_pred = None
+        final_all_target = None
+
         for e in range(num_epochs):
             self.dkt_model.train()
-            epoch_losses = []
             all_pred, all_target = [], []
-            optimizer.zero_grad()
-            
+
             for batch_idx, batch in enumerate(tqdm(train_data, desc=f"Epoch {e}")):
                 try:
-                    batch = batch.to(self.device, non_blocking=True)
-                    if self.scaler is not None:
-                        with autocast():
-                            integrated_pred = self.dkt_model(batch)
-                            batch_losses = []
-                            
-                            batch_size = batch.shape[0]
-                            for student in range(batch_size):
-                                pred, truth = process_raw_pred(
-                                    batch[student], integrated_pred[student], self.vocab_size
-                                )
-                                if len(pred) > 0: 
-                                    loss = loss_function(pred, truth.float())
-                                    batch_losses.append(loss)
-                                    pred_probs = torch.sigmoid(pred)
-                                    all_pred.append(pred_probs.detach().cpu())
-                                    all_target.append(truth.detach().cpu().float())
-                                
-                                del pred, truth
-                            
-                            if batch_losses:
-                                avg_batch_loss = torch.stack(batch_losses).mean()
-                                avg_batch_loss = avg_batch_loss / self.gradient_accumulation_steps
-                                epoch_losses.append(avg_batch_loss.item() * self.gradient_accumulation_steps)
-                        
-                        if batch_losses:
-                            self.scaler.scale(avg_batch_loss).backward()
-                    else:
-                        integrated_pred = self.dkt_model(batch)
-                        batch_losses = []
-                        
-                        batch_size = batch.shape[0]
-                        for student in range(batch_size):
-                            pred, truth = process_raw_pred(
-                                batch[student], integrated_pred[student], self.vocab_size
-                            )
-                            if len(pred) > 0:
-                                loss = loss_function(pred, truth.float())
-                                batch_losses.append(loss)
-                                pred_probs = torch.sigmoid(pred)
-                                all_pred.append(pred_probs.detach().cpu())
-                                all_target.append(truth.detach().cpu().float())
-                            
-                            del pred, truth
-                        
-                        if batch_losses:
-                            avg_batch_loss = torch.stack(batch_losses).mean()
-                            avg_batch_loss = avg_batch_loss / self.gradient_accumulation_steps
-                            epoch_losses.append(avg_batch_loss.item() * self.gradient_accumulation_steps)
-                            avg_batch_loss.backward()
-                    
+                    batch = batch.to(self.device)
+                    integrated_pred = self.dkt_model(batch)
+
+                    batch_size = batch.shape[0]
+                    for student in range(batch_size):
+                        pred, truth = process_raw_pred(
+                            batch[student], integrated_pred[student], self.vocab_size
+                        )
+                        if len(pred) > 0:
+                            pred_probs = torch.sigmoid(pred)
+                            all_pred.append(pred_probs.detach().cpu())
+                            all_target.append(truth.detach().cpu().float())
+                        del pred, truth
+
                     del batch, integrated_pred
-                    if (batch_idx + 1) % self.gradient_accumulation_steps == 0:
-                        if self.scaler is not None:
-                            self.scaler.step(optimizer)
-                            self.scaler.update()
-                        else:
-                            optimizer.step()
-                        optimizer.zero_grad()
                     if batch_idx % 50 == 0:
                         gc.collect()
                         if torch.cuda.is_available():
                             torch.cuda.empty_cache()
-                            
+
                 except RuntimeError as error:
                     if "out of memory" in str(error):
                         print(f"OOM error at batch {batch_idx}, clearing cache and continuing...")
-                        optimizer.zero_grad()
                         gc.collect()
                         if torch.cuda.is_available():
                             torch.cuda.empty_cache()
                         continue
                     else:
                         raise error
-            if len(train_data) % self.gradient_accumulation_steps != 0:
-                if self.scaler is not None:
-                    self.scaler.step(optimizer)
-                    self.scaler.update()
-                else:
-                    optimizer.step()
+
+            if all_pred and all_target:
+                all_pred = torch.cat(all_pred)
+                all_target = torch.cat(all_target)
+
+                try:
+                    loss = loss_function(all_pred.to(self.device), all_target.to(self.device))
+                except RuntimeError:
+                    torch.cuda.empty_cache()
+                    loss = loss_function(all_pred.to(self.device), all_target.to(self.device))
+
                 optimizer.zero_grad()
-            if epoch_losses:
-                avg_epoch_loss = np.mean(epoch_losses)
-                if avg_epoch_loss < best_loss:
-                    best_loss = avg_epoch_loss
+                loss.backward()
+                optimizer.step()
+
+                loss_val = loss.item()
+                if loss_val < best_loss:
+                    best_loss = loss_val
                     pat_count = 0
                 else:
                     pat_count += 1
                     if pat_count >= self.patience:
-                        print(f"Early stopping after {self.patience} epochs without improvement")
+                        print(f"Minimal improvement for {self.patience} epochs, ending training")
                         break
-                
-                print(f"[Epoch {e}] Average Loss: {avg_epoch_loss:.6f}")
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-        if all_pred and all_target:
-            all_pred = torch.cat(all_pred)
-            all_target = torch.cat(all_target)
-            return roc_auc_score(all_target.detach().numpy(), all_pred.detach().numpy())
+
+                print(f"[Epoch {e}] LogisticLoss: {loss_val:.6f}")
+                try:
+                    final_all_pred = all_pred.detach().cpu()
+                    final_all_target = all_target.detach().cpu()
+                except Exception:
+                    final_all_pred = None
+                    final_all_target = None
+            else:
+                print("No predictions collected this epoch; skipping loss/backprop")
+                return 0.0
+        if final_all_pred is not None and final_all_target is not None:
+            try:
+                return roc_auc_score(final_all_target.numpy(), final_all_pred.numpy())
+            except Exception:
+                return 0.0
         else:
             return 0.0
 
@@ -291,39 +257,43 @@ class DKT:
             self.dkt_model.eval()
             y_pred = []
             y_truth = []
-            
-            with torch.no_grad(): 
+
+            with torch.no_grad():
                 for batch_idx, batch in enumerate(tqdm(test_data, desc="Evaluating")):
                     try:
                         batch = batch.to(self.device, non_blocking=True)
-    
+
                         if self.scaler is not None:
                             with autocast():
                                 integrated_pred = self.dkt_model(batch)
                         else:
                             integrated_pred = self.dkt_model(batch)
-                        
+
                         batch_size = batch.shape[0]
                         for student in range(batch_size):
                             pred, truth = process_raw_pred(
-                                batch[student], integrated_pred[student], self.vocab_size
+                                batch[student],
+                                integrated_pred[student],
+                                self.vocab_size,
                             )
                             if len(pred) > 0:
                                 pred_probs = torch.sigmoid(pred)
                                 y_pred.append(pred_probs.cpu())
                                 y_truth.append(truth.cpu().float())
                             del pred, truth
-                        
+
                         del batch, integrated_pred
 
                         if batch_idx % 50 == 0:
                             gc.collect()
                             if torch.cuda.is_available():
                                 torch.cuda.empty_cache()
-                                
+
                     except RuntimeError as error:
                         if "out of memory" in str(error):
-                            print(f"OOM error during evaluation at batch {batch_idx}, clearing cache...")
+                            print(
+                                f"OOM error during evaluation at batch {batch_idx}, clearing cache..."
+                            )
                             gc.collect()
                             if torch.cuda.is_available():
                                 torch.cuda.empty_cache()
@@ -332,8 +302,8 @@ class DKT:
                             raise error
 
             if not y_pred or not y_truth:
-                return 0.0, float('inf'), 0.0
-                
+                return 0.0, float("inf"), 0.0
+
             y_pred = torch.cat(y_pred)
             y_truth = torch.cat(y_truth)
             y_truth = y_truth.detach().numpy()
@@ -349,8 +319,7 @@ class DKT:
 
             return auc, ll, f1
         else:
-            return 0.0, float('inf'), 0.0
-        
+            return 0.0, float("inf"), 0.0
 
     def check_vocab(self, key):
         return self.enc_dict.get(key, 0)
@@ -364,7 +333,9 @@ class DKT:
 
     def load(self, filepath):
         if self.dkt_model is not None:
-            state_dict = torch.load(filepath, map_location='cuda' if torch.cuda.is_available() else 'cpu')
+            state_dict = torch.load(
+                filepath, map_location="cuda" if torch.cuda.is_available() else "cpu"
+            )
             self.dkt_model.load_state_dict(state_dict)
             self.dkt_model.to(self.device)
             logging.info("load parameters from %s" % filepath)
