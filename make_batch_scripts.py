@@ -1,7 +1,7 @@
 import os
 
 if __name__ == '__main__':
-#    os.makedirs('./job_start_scripts/')
+    os.makedirs('./job_start_scripts/')
     years = ['19-20','20-21','21-22','22-23','23-24']
     models_shallow = ['BKT', 'PFA']
     models_deep = ['DKT', 'SAKT-KC', 'SAKT-E']
