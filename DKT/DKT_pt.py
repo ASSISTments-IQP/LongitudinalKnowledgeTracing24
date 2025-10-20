@@ -8,7 +8,7 @@ import torch
 from tqdm import tqdm
 import os
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from sklearn.metrics import roc_auc_score, log_loss, f1_score
 
 class Net(nn.Module):
@@ -37,6 +37,17 @@ def process_raw_pred(raw_question_matrix, raw_pred, num_questions: int) -> tuple
     return pred, truth
 
 
+class DKTDataset(Dataset):
+    def __init__(self, seqs):
+        self.seqs = [seq.astype(np.float32) if isinstance(seq, np.ndarray) else seq for seq in seqs]
+
+    def __len__(self):
+        return len(self.seqs)
+    
+    
+    def __getitem__(self, idx):
+        return torch.from_numpy(self.seqs[idx]).float()
+
 class DKT:
     def __init__(self, batch_size=64, num_steps=50, hidden_size=128, lr=1e-4, dropout_rate=0.15, reg_lambda = 1e-3, gpu_num=0, patience=5):
         self.vocab = []
@@ -55,33 +66,73 @@ class DKT:
         os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    # def preprocess(self, df, fitting=False):
+    #     if fitting:
+    #         self.vocab = df['skill_id'].unique().tolist()
+    #         self.vocab_size = len(self.vocab) + 1
+    #         self.enc_dict = {sk_id: i for i, sk_id in enumerate(self.vocab, start=1)}
+    #
+    #     df.drop_duplicates('problem_log_id', inplace=True)
+    #     df.sort_values(by=['user_xid','start_time'], inplace=True)
+    #
+    #     seqs = []
+    #     for name, group in tqdm(df.groupby(by='user_xid')):
+    #         group_len = group.shape[0]
+    #         mod = 0 if group_len % self.num_steps == 0 else (self.num_steps - group_len % self.num_steps)
+    #         oh = np.zeros(shape=(group_len + mod, self.vocab_size * 2))
+    #         i = 0
+    #         for idx, row in group.iterrows():
+    #             skill = row['skill_id']
+    #             corr = row['discrete_score']
+    #             found_vocab = self.check_vocab(skill)
+    #             col_idx = found_vocab if corr == 0 else found_vocab + self.vocab_size
+    #             oh[i][col_idx] = 1
+    #             i += 1
+    #         seqs.append(oh)
+    #
+    #     seqs = np.concatenate(seqs)
+    #     full_data = torch.FloatTensor(seqs.reshape(-1, self.num_steps, 2 * self.vocab_size))
+    #     d_l = DataLoader(full_data, batch_size=self.batch_size)
+        #
     def preprocess(self, df, fitting=False):
         if fitting:
-            self.vocab = df['skill_id'].unique().tolist()
+            self.vocab = df["skill_id"].unique().tolist()
             self.vocab_size = len(self.vocab) + 1
             self.enc_dict = {sk_id: i for i, sk_id in enumerate(self.vocab, start=1)}
 
-        df.drop_duplicates('problem_log_id', inplace=True)
-        df.sort_values(by=['user_xid','start_time'], inplace=True)
+        df.drop_duplicates("problem_log_id", inplace=True)
+        df.sort_values(by=["user_xid", "start_time"], inplace=True)
 
-        seqs = []
-        for name, group in tqdm(df.groupby(by='user_xid')):
-            group_len = group.shape[0]
-            mod = 0 if group_len % self.num_steps == 0 else (self.num_steps - group_len % self.num_steps)
-            oh = np.zeros(shape=(group_len + mod, self.vocab_size * 2))
-            i = 0
-            for idx, row in group.iterrows():
-                skill = row['skill_id']
-                corr = row['discrete_score']
-                found_vocab = self.check_vocab(skill)
-                col_idx = found_vocab if corr == 0 else found_vocab + self.vocab_size
-                oh[i][col_idx] = 1
-                i += 1
-            seqs.append(oh)
+        def sequence_generator():
+            for name, group in df.groupby(by="user_xid"):
+                group_len = group.shape[0]
+                mod = (0 if group_len % self.num_steps == 0 else (self.num_steps - group_len % self.num_steps))
+                oh = np.zeros(shape=(group_len + mod, self.vocab_size * 2), dtype=np.float32)
 
-        seqs = np.concatenate(seqs)
-        full_data = torch.FloatTensor(seqs.reshape(-1, self.num_steps, 2 * self.vocab_size))
-        d_l = DataLoader(full_data, batch_size=self.batch_size)
+                for i, (idx, row) in enumerate(group.iterrows()):
+                    skill = row["skill_id"]
+                    corr = row["discrete_score"]
+                    found_vocab = self.check_vocab(skill)
+                    col_idx = found_vocab if corr == 0 else found_vocab + self.vocab_size
+                    oh[i][col_idx] = 1
+
+                seq_reshaped = oh.reshape(-1, self.num_steps, 2 * self.vocab_size)
+                for seq_chunk in seq_reshaped:
+                    yield seq_chunk
+
+                del oh, seq_reshaped
+
+        sequences_list = []
+        for seq in tqdm(sequence_generator(), desc="Processing sequences"):
+            sequences_list.append(seq)
+
+        gc.collect()
+
+        dataset = DKTDataset(sequences_list)
+        d_l = DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=True)
         return d_l
 
     def fit(self, train_data, num_epochs) -> ...:
@@ -127,7 +178,6 @@ class DKT:
             except RuntimeError:
                 torch.cuda.empty_cache()
                 loss = loss_function(all_pred.to(self.device), all_target.to(self.device))
-            # back propagation
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
