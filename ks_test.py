@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from scipy.stats import ks_2samp
+from scipy.stats import chi2_contingency
 from statsmodels.stats.multitest import multipletests
 
 
@@ -10,122 +10,97 @@ def conv_to_arr(df: pd.DataFrame) -> np.ndarray:
     return df.values
 
 
-def test_distributional_similarity(base_df: pd.DataFrame, comparison_df: pd.DataFrame, plot: bool = False, fname: str = "ks_test.png", alpha: float = 0.05):
+def test_distributional_similarity(base_df: pd.DataFrame, comparison_df: pd.DataFrame, col1, col2):
     assert base_df.shape[1] == comparison_df.shape[1]
-    base_arr, comp_arr = conv_to_arr(base_df), conv_to_arr(comparison_df)
-    n_feats = base_arr.shape[1]
-    ks_stats = np.empty(n_feats)
-    p_vals = np.empty(n_feats)
-    for j in range(n_feats):
-        a = base_arr[:, j]
-        b = comp_arr[:, j]
-        if len(a) == 0 or len(b) == 0:
-            ks_stats[j] = np.nan
-            p_vals[j] = np.nan
-            continue
+    all_obs = pd.concat([base_df,comparison_df])
 
-        ks, p = ks_2samp(a, b)
-        ks_stats[j] = ks
-        p_vals[j] = p
+    obs = pd.crosstab(all_obs[col1],all_obs[col2],margins=False)
 
-    valid = np.isfinite(p_vals)
-    valid_p_vals = p_vals[valid]
-    valid_ks_stats = ks_stats[valid]
-    num_sig_raw = np.sum(valid_p_vals < alpha)
-    e_false_pos = alpha * len(valid_p_vals)
+    res = chi2_contingency(obs.to_numpy().T)
 
-    if num_sig_raw > e_false_pos:
-        plot = True
-
-    if plot:
-        if not fname:
-            fname = "ks_test_stuff.png"
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-        ax1.hist(valid_p_vals, bins = 50, density = True, label = 'Observed P Values')
-        ax1.axhline(1.0, color='red', linestyle='--', alpha=0.7, label='Uniform (null)')
-        ax1.axvline(alpha, ls="--", lw=1.5, color='black', label=f"p = {alpha}")
-        ax1.set_xlabel("KS p-value")
-        ax1.set_ylabel("Density")
-        ax1.set_title("P-value Distribution")
-        ax1.legend()
-        ax2.hist(valid_ks_stats, bins=50, density=True, alpha=0.7)
-        ax2.set_xlabel("KS statistic")
-        ax2.set_ylabel("Density")
-        ax2.set_title("KS Statistic Distribution")
-        plt.tight_layout()
-        plt.savefig(fname)
-        plt.close()
-
-    return p_vals, ks_stats
+    return res.pvalue, res.statistic
 
 #fake test case
 
 if __name__ == "__main__":
     years = ['19-20', '20-21', '21-22', '22-23', '23-24']
     sample_nums = range(1, 11)
+    col2 = 'discrete_score'
 
     sample_dict = {}
     for year in years:
         y_dict = {}
         for n in sample_nums:
-            y_dict[n] = pd.read_csv(f'./Data/samples/{year}/sample{str(n)}.csv')[['skill_id','discrete_score']]
+            y_dict[n] = pd.read_csv(f'./Data/samples/{year}/sample{str(n)}.csv')[[col2,'academic_year']]
         sample_dict[year] = y_dict
 
     # WY tests
     pvals = []
-    ks_stats = []
+    n_wy = 0
+    chi2_stats = []
     for y in years:
         for train_samp in tqdm(sample_nums, desc=f'WY {y}'):
             train = []
             test = []
             for s in sample_nums:
+                sample_dict[y][s]['sample_num'] = s
                 if s == train_samp:
                     train = sample_dict[y][s]
                 else:
                     test.append(sample_dict[y][s])
 
             test = pd.concat(test)
+            test['academic_year'] = 'a'
 
-            cur_pval, cur_ks = test_distributional_similarity(train, test, fname=f'./plots/{y}-{str(train_samp)}')
+            cur_pval, cur_chi2 = test_distributional_similarity(train, test, 'sample_num', col2)
             pvals.append(cur_pval)
-            ks_stats.append(cur_ks)
+            chi2_stats.append(cur_chi2)
+            ++n_wy
 
     # CY tests
     for train_y_idx in range(4):
         train_year = years[train_y_idx]
-        for test_y_idx in range(train_y_idx,5):
+        for test_y_idx in range(train_y_idx+1,5):
             test_year = years[test_y_idx]
             for s in tqdm(sample_nums,desc=f'CY {train_year}/{test_year}'):
-                cur_pval, cur_ks = test_distributional_similarity(sample_dict[train_year][s],sample_dict[test_year][s], fname=f'./plots/{train_year}-{test_year}')
+                cur_pval, cur_chi2 = test_distributional_similarity(sample_dict[train_year][s], sample_dict[test_year][s], 'academic_year', col2)
                 pvals.append(cur_pval)
-                ks_stats.append(cur_ks)
+                chi2_stats.append(cur_chi2)
 
-    pvals = np.concatenate(pvals)
-    print(a.shape for a in ks_stats)
-    ks_stats = np.concatenate(ks_stats)
+    pvals = np.array(pvals)
+    print (pvals.shape)
+    print(a.shape for a in chi2_stats)
+    chi2_stats = np.array(chi2_stats)
 
     valid = np.isfinite(pvals)
     valid_p_vals = pvals[valid]
-    valid_ks_stats = ks_stats[valid]
+    valid_chi2_stats = chi2_stats[valid]
     num_sig_raw = np.sum(valid_p_vals < 0.05)
-    if len(valid_p_vals) > 0:
+    valid_len = len(valid_p_vals)
+    print(valid_len," Valid p values out of ",len(pvals))
+    if valid_len > 0:
         rejected, p_corrected, _, _ = multipletests(valid_p_vals, alpha = 0.05, method = 'fdr_by')
+        wy_rej = rejected[:n_wy]
+        cy_rej = rejected[n_wy:]
+        wy_r_sum = np.sum(wy_rej)
+        cy_r_sum = np.sum(cy_rej)
         num_sig_corrected = np.sum(rejected)
     else:
         num_sig_corrected = 0
         p_corrected = np.array([])
 
-    e_false_pos = 0.05 * len(valid_p_vals)
+    e_false_pos = 0.05 * valid_len
     print(f"feats tried: {valid.sum():d}")
     print(f"feats w/ p < {0.05:.3f} (raw): {num_sig_raw:d} "
           f"({num_sig_raw / valid.sum():.1%})")
     print(f"Expected false positives under null: {e_false_pos:.1f}")
     print(f"Features statistically significant after correction: {num_sig_corrected:d} "
           f"({num_sig_corrected / valid.sum():.1%})")
-    if len(valid_ks_stats) > 0:
-        print(f"KS statistic - Mean: {np.mean(valid_ks_stats):.3f}, "
-              f"Median: {np.median(valid_ks_stats):.3f}, "
-              f"Max: {np.max(valid_ks_stats):.3f}")
+    print(f"wy tests which reject after correction: {wy_r_sum}")
+    if len(valid_chi2_stats) > 0:
+        print(f"Chi2 statistic - Mean: {np.mean(valid_chi2_stats):.3f}, "
+              f"Median: {np.median(valid_chi2_stats):.3f}, "
+              f"Max: {np.max(valid_chi2_stats):.3f}")
 
     if num_sig_corrected == 0:
         print("no statistically significant evidence that from diff distribution")
