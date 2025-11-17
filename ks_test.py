@@ -9,6 +9,15 @@ from statsmodels.stats.multitest import multipletests
 def conv_to_arr(df: pd.DataFrame) -> np.ndarray:
     return df.values
 
+def calculate_psi(base_df, comparison_df):
+    pass
+
+def calculate_KL_Divergence(base_df, comparison_df):
+    pass
+
+def calculate_JS_Divergence(base_df, comparison_df):
+    pass
+
 
 def test_distributional_similarity(base_df: pd.DataFrame, comparison_df: pd.DataFrame, col1, col2):
     assert base_df.shape[1] == comparison_df.shape[1]
