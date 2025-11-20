@@ -58,7 +58,7 @@ def handle_non_intersecting(df1, df2, column_name):
 if __name__ == "__main__":
     years = ['19-20', '20-21', '21-22', '22-23', '23-24']
     sample_nums = range(1, 11)
-    col2 = 'skill_id'
+    col2 = 'old_problem_id'
 
     sample_dict = {}
     for year in years:
