@@ -1,5 +1,5 @@
 from PFA.PFA_Model import PFA
-from BKT.BKT_Model import BKTModel
+from BKT.pyBKT_Model import pyBKT_wrapper
 from multiprocessing import Pool
 from tqdm import tqdm
 import pandas as pd
@@ -17,7 +17,7 @@ def run_one_sample(model_args, train_samples, test_samples, sample_num):
         tests[year] = (samps[sample_num])
 
     if model_type == 'BKT':
-        model = BKTModel()
+        model = pyBKT_wrapper()
     if model_type == 'PFA':
         model = PFA()
 
@@ -51,21 +51,21 @@ if __name__ == '__main__':
 
     train_dict = {}
     for i in range(1, 11):
-        s1 = pd.read_csv(f'../Data/samples/{train_year}/sample{i}.csv')
+        s1 = pd.read_csv(f'Data/{train_year}/sample{i}.csv')
         train_dict[i] = s1
-
-    test_years = year_list[year_list.index(train_year):]
-
+    test_years = year_list.copy()
+    test_years.pop(year_list.index(train_year))
+    # print(f'test_years len: {len(test_years)}')
     print('Loading year samples')
     test_dict = {}
     for y in tqdm(test_years):
+        print(f"y: {y}")
         y_dict = {}
         for i in range(1,11):
-            s1 = pd.read_csv(f'../Data/samples/{y}/sample{i}.csv')
+            s1 = pd.read_csv(f'Data/{y}/sample{i}.csv')
             y_dict[i] = s1
 
         test_dict[y] = y_dict
-
 
     res = {}
     args = zip([(model_type, train_year)] * 10, [train_dict] * 10, [test_dict] * 10, range(1,11))

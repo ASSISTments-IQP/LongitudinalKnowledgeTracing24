@@ -271,3 +271,9 @@ class SAKTModel(nn.Module):
         val_loss = np.mean(val_losses)
         val_auc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.0
         return val_auc, val_loss
+
+    def save(self, filepath):
+        torch.save(self.state_dict(), filepath)
+
+    def load(self, filepath):
+        self.load_state_dict(torch.load(filepath))

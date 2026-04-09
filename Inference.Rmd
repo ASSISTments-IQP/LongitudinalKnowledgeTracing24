@@ -11,23 +11,29 @@ library(lmtest)
 library(MASS)
 library(dplyr)
 library(rstatix)
+library(car)
 #library(lm_robust)
-data = read.csv('./Data/results_pt_3.csv')
+data = read.csv('C:/Users/Morg/Downloads/data_analysis_round_4.csv')
 ```
 
 ```{r}
-data%>%group_by(model,years_between)%>%summarize(auc=mean(auc))%>%ggplot(aes(years_between,auc))+#,color=model))
+data$years_between_raw = data$years_between
+data$years_between = abs(data$years_between)
+```
+
+```{r}
+data%>%group_by(train_year,years_between_raw)%>%summarize(auc=mean(auc))%>%ggplot(aes(years_between_raw,auc))+#,color=model))
   geom_point()+geom_line()+#geom_smooth(se=FALSE)+
-  facet_wrap(~model,scales = 'free')
+  facet_wrap(~train_year,scales = 'free')
   #geom_smooth(method="lm",se=FALSE)
 
-data%>%group_by(model,years_between)%>%summarize(ll=mean(ll))%>%ggplot(aes(years_between,ll))+#,color=model))
+data%>%group_by(train_year,years_between_raw)%>%summarize(ll=mean(ll))%>%ggplot(aes(years_between_raw,ll))+#,color=model))
   geom_point()+geom_line()+#geom_smooth(se=FALSE)+
-  facet_wrap(~model,scales = 'free')
+  facet_wrap(~train_year,scales = 'free')
 
-data%>%group_by(model,years_between)%>%summarize(f1=mean(f1))%>%ggplot(aes(years_between,f1))+#,color=model))
+data%>%group_by(train_year,years_between_raw)%>%summarize(f1=mean(f1))%>%ggplot(aes(years_between_raw,f1))+#,color=model))
   geom_point()+geom_line()+#geom_smooth(se=FALSE)+
-  facet_wrap(~model,scales = 'free')
+  facet_wrap(~train_year,scales = 'free')
 ```
 
 ```{r}
@@ -41,6 +47,7 @@ for (m in mods) {
   test_ll = cor.test(sub_df$years_between,sub_df$ll,method='spearman')
   print(test_ll)
   test_f1 = cor.test(sub_df$years_between,sub_df$f1,method='spearman')
+  print(test_f1)
   pvals = append(pvals,test_auc$p.value)
   pvals = append(pvals,test_ll$p.value)
   pvals = append(pvals,test_f1$p.value)
@@ -49,6 +56,10 @@ for (m in mods) {
 
 ```{r}
 p.adjust(pvals,'holm')
+```
+```{r}
+data$years_between_raw = data$years_between
+data$years_between = abs(data$years_between)
 ```
 
 ```{r}
@@ -64,7 +75,7 @@ int_tib = data%>%group_by(model,years_between)%>%summarize(auc_m=mean(auc),auc_l
 ```{r}
 ggplot(int_tib, aes(x=years_between,y=auc_m))+
   geom_point(aes(color=model))+geom_line(aes(color=model))+
-  geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.2,color=model))+
+  geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.05,color=model))+
   facet_wrap(~model,scales='free')+
   #ggh4x::facet_manual(~model,scales="free",design=a_des)+
   theme(legend.position='none')+
@@ -72,6 +83,8 @@ ggplot(int_tib, aes(x=years_between,y=auc_m))+
 
 ggplot(int_tib, aes(x=years_between,y=auc_m))+
   geom_point(aes(color=model))+geom_line(aes(color=model))+
+  geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.05,color=model))+
+  geom_jitter()+
   #ggh4x::facet_manual(~model,scales="free",design=a_des)+
   labs(y='AUC',x='Years between Training & Evaluation Year')
 
@@ -105,6 +118,84 @@ ggplot(int_tib, aes(x=years_between,y=f1_m))+
 ```
 
 ```{r}
+train_tib = data%>%group_by(train_year,years_between)%>%summarize(auc_m=mean(auc),auc_low=t.test(auc)$conf.int[1], auc_hi=t.test(auc)$conf.int[2],ll_m=mean(ll),ll_low=t.test(ll)$conf.int[1],ll_hi=t.test(ll)$conf.int[2],f1_m=mean(f1),f1_low=t.test(f1)$conf.int[1],f1_hi=t.test(f1)$conf.int[2])
+```
+
+
+```{r}
+ggplot(train_tib, aes(x=years_between,y=auc_m))+
+  geom_point(aes(color=train_year))+geom_line(aes(color=train_year))+
+  geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.2,color=train_year))+
+  facet_wrap(~train_year,scales='free')+
+  #ggh4x::facet_manual(~train_year,scales="free",design=a_des)+
+  theme(legend.position='none')+
+  labs(y='AUC',x='Years between Training & Evaluation Year')
+
+ggplot(train_tib, aes(x=years_between,y=auc_m))+
+  geom_point(aes(color=train_year))+geom_line(aes(color=train_year))+
+  #ggh4x::facet_manual(~train_year,scales="free",design=a_des)+
+  labs(y='AUC',x='Years between Training & Evaluation Year')
+
+ggplot(train_tib, aes(x=years_between,y=ll_m))+
+  geom_point(aes(color=train_year))+geom_line(aes(color=train_year))+
+  geom_errorbar(aes(ymin=ll_low,ymax=ll_hi,width=.2,color=train_year))+
+  facet_wrap(~train_year,scales='free')+
+  #ggh4x::facet_manual(~train_year,scales="free",design=a_des)+
+  theme(legend.position='none')+
+  labs(y='Log Loss',x='Years between Training & Evaluation Year')
+
+ggplot(train_tib, aes(x=years_between,y=ll_m))+
+  geom_point(aes(color=train_year))+geom_line(aes(color=train_year))+
+  #ggh4x::facet_manual(~train_year,scales="free",design=a_des)+
+  labs(y='Log Loss',x='Years between Training & Evaluation Year')
+
+ggplot(train_tib, aes(x=years_between,y=f1_m))+
+  geom_point(aes(color=train_year))+geom_line(aes(color=train_year))+
+  geom_errorbar(aes(ymin=f1_low,ymax=f1_hi,width=.2,color=train_year))+
+  facet_wrap(~train_year,scales='free')+
+  #ggh4x::facet_manual(~train_year,scales="free",design=a_des)+
+  theme(legend.position='none')+
+  labs(y='F1 Score',x='Years between Training & Evaluation Year')
+
+ggplot(train_tib, aes(x=years_between,y=f1_m))+
+  geom_point(aes(color=train_year))+geom_line(aes(color=train_year))+
+  #ggh4x::facet_manual(~train_year,scales="free",design=a_des)+
+  labs(y='F1 Score',x='Years between Training & Evaluation Year')
+
+#ggsave(plo,filename='./diff_with_error_bars.png',width=4,height=5)
+```
+
+```{r}
+aucmod = lm(auc~years_between*model+train_year*years_between+eval_year,data=data)
+summary(aucmod)
+coeftest(aucmod,vcov.=vcovHC(aucmod, type='HC3'))
+vif(aucmod,type='predictor')
+
+plot(aucmod)
+
+```
+
+```{r}
+llmod = lm(ll~years_between*model+train_year*years_between+eval_year,data=data)
+summary(llmod)
+coeftest(llmod,vcov.=vcovHC(llmod, type='HC3'))
+vif(llmod,type='predictor')
+
+plot(llmod)
+```
+
+```{r}
+f1mod = lm(f1~years_between*model+train_year*years_between+eval_year,data=data)
+summary(f1mod)
+coeftest(f1mod,vcov.=vcovHC(f1mod, type='HC3'))
+vif(f1mod,type='predictor')
+
+plot(f1mod)
+```
+
+
+
+```{r}
 ggplot(int_tib, aes(x=years_between,y=auc_m))+
   geom_errorbar(aes(ymin=auc_low,ymax=auc_hi,width=.05,color=model))+
   geom_point(aes(color=model))+geom_line(aes(color=model))
@@ -115,45 +206,43 @@ ggplot(int_tib, aes(x=years_between,y=auc_m))+
 #param_nums%>%group_by(model)%>%summarize(avg_params=mean(num_trainable_params))
 ```
 
-```{r}
-sakt_e = data[data['model'] == 'SAKT-E',]
-sakt_kc = data[data['model'] == 'SAKT-KC',]
+<!-- ```{r} -->
+<!-- sakt_e = data[data['model'] == 'SAKT-E',] -->
+<!-- sakt_kc = data[data['model'] == 'SAKT-KC',] -->
 
-cor.test(sakt_e$auc,sakt_kc$auc,method='spearman')
+<!-- cor.test(sakt_e$auc,sakt_kc$auc,method='spearman') -->
 
-all_sakt = rbind(sakt_e,sakt_kc)
+<!-- all_sakt = rbind(sakt_e,sakt_kc) -->
 
-sakt_mod = lm(rank(auc)~years_between*model,data=all_sakt)
-summary(sakt_mod)
-coeftest(sakt_mod,vcov.=vcovHC)
-plot(sakt_mod,which=c(1,3))
+<!-- sakt_mod = lm(rank(auc)~years_between*model,data=all_sakt) -->
+<!-- summary(sakt_mod) -->
+<!-- coeftest(sakt_mod,vcov.=vcovHC) -->
+<!-- plot(sakt_mod,which=c(1,3)) -->
 
-pred <- predict(sakt_mod)
-ggplot(all_sakt,aes(years_between,auc,color=model))+geom_point(alpha=0.2)+
-  geom_line(aes(y=pred))+
-  labs(y='AUC',x='Years between Training & Evaluation Year')+
-  scale_color_discrete(name="Model")
+<!-- pred <- predict(sakt_mod) -->
+<!-- ggplot(all_sakt,aes(years_between,auc,color=model))+geom_point(alpha=0.2)+ -->
+<!--   geom_line(aes(y=pred))+ -->
+<!--   labs(y='AUC',x='Years between Training & Evaluation Year')+ -->
+<!--   scale_color_discrete(name="Model") -->
 
-#ggsave(plo1,filename='./sakt_line.png',width=4,height=3)
-  
-```
+<!-- #ggsave(plo1,filename='./sakt_line.png',width=4,height=3) -->
 
-```{r}
-bc = boxcox(all_sakt$auc ~ all_sakt$years_between*all_sakt$model, lambda = seq(-10,0,1/20))
-bc$x[which.max(bc$y)]
-```
+<!-- ``` -->
 
-```{r}
-bc_transform = function(y, ld) {
-  if (ld == 0) {
-    log(y)
-  }
-  else {
-    ((y^ld) - 1) / ld
-  }
-}
+<!-- ```{r} -->
+<!-- bc = boxcox(data$f1~data$years_between*data$train_year+data$years_between*data$model+data$eval_year, lambda = seq(-10,10,1/20)) -->
+<!-- bc$x[which.max(bc$y)] -->
+<!-- ``` -->
 
-ggplot(all_sakt, aes(auc,fill=model))+geom_histogram()
+<!-- ```{r} -->
+<!-- bc_transform = function(y, ld) { -->
+<!--   if (ld == 0) { -->
+<!--     log(y) -->
+<!--   } -->
+<!--   else { -->
+<!--     ((y^ld) - 1) / ld -->
+<!--   } -->
+<!-- } -->
 
 ggplot(all_sakt, aes(bc_transform(auc,-4.6),fill=model))+geom_histogram()
 
@@ -180,49 +269,81 @@ ll_mat = cor_mat(data4, vars  = c('bkt_ll', 'pfa_ll', 'dkt_ll', 'sakt_kc_ll', 's
 f1_mat = cor_mat(data4, vars  = c('bkt_f1', 'pfa_f1', 'dkt_f1', 'sakt_kc_f1', 'sakt_e_f1', 'y_btwn'), method = 'spearman')
 auc_mat
 ```
+<!-- ggplot(all_sakt, aes(auc,fill=model))+geom_histogram() -->
+
+<!-- ggplot(all_sakt, aes(bc_transform(auc,0),fill=model))+geom_histogram() -->
 
 
-```{r}
-auc_mat
-```
-```{r}
-for (i in 1:4){
-  for (j in (i+2):6){
-    pjk = pull(auc_mat[i,7])
-    pjh = pull(auc_mat[j-1,7])
-    pkh = pull(auc_mat[i,j])
-    
-    print(pjh)
-  }
-}
-```
-order of comparisons:
- - BKT/PFA
- 
+<!-- bcmod = lm(bc_transform(auc,-2.8)~model*years_between+train_year*years_between+eval_year,data=data) -->
+<!-- summary(bcmod) -->
 
 
-```{r}
-rhocomparison = function(pjk, pjh, pkh) {
-  n = 150
-  cov = pkh * (1 - pjk^2 - pjh ^2) - (1/2 * (pjk * pjh)) * (1 - pjk^2 - pjh^2 * pkh^2)
-  asympvar = cov / ((1 - pjk^2) * (1-pjh^2))
-  zjk = 0.5 * log ((1 + pjk) / (1 - pjk))
-  zjh = 0.5 * log ((1 + pjh) / (1 - pjh))
-  Zstar = sqrt(n - 3 )* (zjk - zjh) / (sqrt(2 - 2 * asympvar))
-  lt = Zstar < 0
-  p = 2 * pnorm(Zstar, lower.tail = lt) 
-  return (p)
-}
+<!-- sakt_mod = lm(bc_transform(auc, 0.)~years_between*model,data=all_sakt) -->
+<!-- summary(sakt_mod) -->
+<!-- plot(bcmod) -->
+<!-- coeftest(sakt_mod,vcov.=vcovHC) -->
+<!-- plot(sakt_mod,which=c(1,3)) -->
 
-pval_walk = function(cor_matrix)
-for (i in 1:4){
-  for (j in (i+2):6){
-    pjk = pull(cor_matrix[i,7])
-    pjh = pull(cor_matrix[j-1,7])
-    pkh = pull(cor_matrix[i,j])
-    
-    print(rhocomparison(pjk,pjh,pkh))
-  }
-}
+<!-- ``` -->
 
-```
+<!-- ```{r} -->
+<!-- all_bkt = data[data['model'] == 'BKT',] -->
+<!-- res_aov = aov(auc~factor(years_between), data=all_bkt) -->
+<!-- summary(res_aov) -->
+<!-- TukeyHSD(res_aov) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- data4 = read.csv('Data/results_pt_4.csv') -->
+
+<!-- auc_mat = cor_mat(data4, vars  = c('bkt_auc', 'pfa_auc', 'dkt_auc', 'sakt_kc_auc', 'sakt_e_auc', 'y_btwn'), method = 'spearman') -->
+<!-- ll_mat = cor_mat(data4, vars  = c('bkt_ll', 'pfa_ll', 'dkt_ll', 'sakt_kc_ll', 'sakt_e_ll', 'y_btwn'), method = 'spearman') -->
+<!-- f1_mat = cor_mat(data4, vars  = c('bkt_f1', 'pfa_f1', 'dkt_f1', 'sakt_kc_f1', 'sakt_e_f1', 'y_btwn'), method = 'spearman') -->
+<!-- auc_mat -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- auc_mat -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- for (i in 1:4){ -->
+<!--   for (j in (i+2):6){ -->
+<!--     pjk = pull(auc_mat[i,7]) -->
+<!--     pjh = pull(auc_mat[j-1,7]) -->
+<!--     pkh = pull(auc_mat[i,j]) -->
+
+<!--     print(pjh) -->
+<!--   } -->
+<!-- } -->
+<!-- ``` -->
+<!-- order of comparisons: -->
+<!--  - BKT/PFA -->
+
+
+
+<!-- ```{r} -->
+<!-- rhocomparison = function(pjk, pjh, pkh) { -->
+<!--   n = 150 -->
+<!--   cov = pkh * (1 - pjk^2 - pjh ^2) - (1/2 * (pjk * pjh)) * (1 - pjk^2 - pjh^2 * pkh^2) -->
+<!--   asympvar = cov / ((1 - pjk^2) * (1-pjh^2)) -->
+<!--   zjk = 0.5 * log ((1 + pjk) / (1 - pjk)) -->
+<!--   zjh = 0.5 * log ((1 + pjh) / (1 - pjh)) -->
+<!--   Zstar = sqrt(n - 3 )* (zjk - zjh) / (sqrt(2 - 2 * asympvar)) -->
+<!--   lt = Zstar < 0 -->
+<!--   p = 2 * pnorm(Zstar, lower.tail = lt)  -->
+<!--   return (p) -->
+<!-- } -->
+
+<!-- pval_walk = function(cor_matrix) -->
+<!-- for (i in 1:4){ -->
+<!--   for (j in (i+2):6){ -->
+<!--     pjk = pull(cor_matrix[i,7]) -->
+<!--     pjh = pull(cor_matrix[j-1,7]) -->
+<!--     pkh = pull(cor_matrix[i,j]) -->
+
+<!--     print(rhocomparison(pjk,pjh,pkh)) -->
+<!--   } -->
+<!-- } -->
+
+<!-- ``` -->
