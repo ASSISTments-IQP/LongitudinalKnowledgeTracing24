@@ -7,6 +7,6 @@
 #SBATCH -e "BIG_ERROR.out"
 #SBATCH -p short
 #SBATCH -t 24:00:00
-module load python
+cd ..
 source ~/myenvs/lkt-env/bin/activate
-python3 ../run_shallow_one_year.py MODEL_TYPE YEAR
+python run_shallow_one_year.py MODEL_TYPE YEAR

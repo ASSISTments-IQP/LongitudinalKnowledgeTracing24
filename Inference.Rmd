@@ -22,18 +22,18 @@ data$years_between = abs(data$years_between)
 ```
 
 ```{r}
-data%>%group_by(model,years_between)%>%summarize(auc=mean(auc))%>%ggplot(aes(years_between,auc))+#,color=model))
+data%>%group_by(train_year,years_between_raw)%>%summarize(auc=mean(auc))%>%ggplot(aes(years_between_raw,auc))+#,color=model))
   geom_point()+geom_line()+#geom_smooth(se=FALSE)+
-  facet_wrap(~model,scales = 'free')
+  facet_wrap(~train_year,scales = 'free')
   #geom_smooth(method="lm",se=FALSE)
 
-data%>%group_by(model,years_between)%>%summarize(ll=mean(ll))%>%ggplot(aes(years_between,ll))+#,color=model))
+data%>%group_by(train_year,years_between_raw)%>%summarize(ll=mean(ll))%>%ggplot(aes(years_between_raw,ll))+#,color=model))
   geom_point()+geom_line()+#geom_smooth(se=FALSE)+
-  facet_wrap(~model,scales = 'free')
+  facet_wrap(~train_year,scales = 'free')
 
-data%>%group_by(model,years_between)%>%summarize(f1=mean(f1))%>%ggplot(aes(years_between,f1))+#,color=model))
+data%>%group_by(train_year,years_between_raw)%>%summarize(f1=mean(f1))%>%ggplot(aes(years_between_raw,f1))+#,color=model))
   geom_point()+geom_line()+#geom_smooth(se=FALSE)+
-  facet_wrap(~model,scales = 'free')
+  facet_wrap(~train_year,scales = 'free')
 ```
 
 ```{r}
@@ -56,6 +56,10 @@ for (m in mods) {
 
 ```{r}
 p.adjust(pvals,'holm')
+```
+```{r}
+data$years_between_raw = data$years_between
+data$years_between = abs(data$years_between)
 ```
 
 ```{r}
@@ -240,7 +244,6 @@ ggplot(int_tib, aes(x=years_between,y=auc_m))+
 <!--   } -->
 <!-- } -->
 
-<<<<<<< Updated upstream
 ggplot(all_sakt, aes(bc_transform(auc,-4.6),fill=model))+geom_histogram()
 
 
@@ -266,7 +269,6 @@ ll_mat = cor_mat(data4, vars  = c('bkt_ll', 'pfa_ll', 'dkt_ll', 'sakt_kc_ll', 's
 f1_mat = cor_mat(data4, vars  = c('bkt_f1', 'pfa_f1', 'dkt_f1', 'sakt_kc_f1', 'sakt_e_f1', 'y_btwn'), method = 'spearman')
 auc_mat
 ```
-=======
 <!-- ggplot(all_sakt, aes(auc,fill=model))+geom_histogram() -->
 
 <!-- ggplot(all_sakt, aes(bc_transform(auc,0),fill=model))+geom_histogram() -->
@@ -274,7 +276,6 @@ auc_mat
 
 <!-- bcmod = lm(bc_transform(auc,-2.8)~model*years_between+train_year*years_between+eval_year,data=data) -->
 <!-- summary(bcmod) -->
->>>>>>> Stashed changes
 
 
 <!-- sakt_mod = lm(bc_transform(auc, 0.)~years_between*model,data=all_sakt) -->
